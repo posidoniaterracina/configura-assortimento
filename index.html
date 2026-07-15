@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Dimensionamento assortimenti per cluster Alto, Medio e Basso">
+  <title>Configura assortimento</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div>
+        <p class="eyebrow">GRUPPO ORIZZONTE</p>
+        <h1>Dimensionamento assortimento</h1>
+        <p class="subtitle">Carica anagrafica e vendite. I file restano nel browser e non vengono inviati a un server.</p>
+      </div>
+      <div class="status-pill" id="clusterStatus">Caricamento cluster...</div>
+    </div>
+  </header>
+
+  <main class="shell page-grid">
+    <aside class="panel controls">
+      <section>
+        <h2>1. File di input</h2>
+        <label class="upload-box" for="assortmentFile">
+          <span class="upload-title">Anagrafica assortimento</span>
+          <span class="upload-help">File XLSX o XLS con GAlto, GMedio, GBasso e Breve</span>
+          <input id="assortmentFile" type="file" accept=".xlsx,.xls">
+        </label>
+        <label class="upload-box" for="salesFile">
+          <span class="upload-title">Vendite ultimi 6 mesi</span>
+          <span class="upload-help">File XLSX o XLS con articolo, punto vendita, data e quantit&agrave;</span>
+          <input id="salesFile" type="file" accept=".xlsx,.xls">
+        </label>
+        <div class="template-links">
+          <a href="data/templates/Anagrafica_Template.xlsx" download>Modello anagrafica</a>
+          <a href="data/templates/Vendite_Template.xlsx" download>Modello vendite</a>
+        </div>
+      </section>
+
+      <section id="sheetSection" class="hidden">
+        <h2>2. Fogli Excel</h2>
+        <label>Foglio anagrafica<select id="assortmentSheet"></select></label>
+        <label>Foglio vendite<select id="salesSheet"></select></label>
+      </section>
+
+      <section id="mappingSection" class="hidden">
+        <h2>3. Mappatura colonne</h2>
+        <details open>
+          <summary>Anagrafica</summary>
+          <div id="assortmentMapping" class="mapping-grid"></div>
+        </details>
+        <details>
+          <summary>Vendite</summary>
+          <div id="salesMapping" class="mapping-grid"></div>
+        </details>
+      </section>
+
+      <section id="scopeSection" class="hidden">
+        <h2>4. Perimetro</h2>
+        <label>Reparto<select id="scopeReparto"></select></label>
+        <label>Gruppo<select id="scopeGruppo"></select></label>
+        <label>Famiglia / sottofamiglia<select id="scopeFamiglia"></select></label>
+        <p class="note">Filtro fisso: <strong>Breve = N</strong>.</p>
+      </section>
+
+      <section id="parameterSection" class="hidden">
+        <h2>5. Parametri</h2>
+        <div class="two-cols">
+          <label>Mesi copertura<input id="targetMonths" type="number" min="0.5" max="6" step="0.5" value="2"></label>
+          <label>Scorta sicurezza<input id="safetyStock" type="number" min="0" max="20" step="1" value="1"></label>
+          <label>Punteggio inserimento<input id="insertionScore" type="number" min="0" max="100" step="1" value="70"></label>
+          <label>Minimo espositivo<input id="minimumDisplay" type="number" min="1" max="50" step="1" value="1"></label>
+          <label>Aumento massimo %<input id="maxIncreasePct" type="number" min="0" max="300" step="10" value="100"></label>
+          <label>Riduzione massima %<input id="maxReductionPct" type="number" min="0" max="100" step="10" value="50"></label>
+        </div>
+        <label class="check-row"><input id="roundToPack" type="checkbox"> Arrotonda ai pezzi per collo</label>
+        <label class="check-row"><input id="enforceCapacity" type="checkbox" checked> Mantieni il limite di spazio del cluster Basso</label>
+        <label>Capacit&agrave; teorica Basso<input id="bassoCapacity" type="number" min="0" step="1" value="0"></label>
+        <p class="note">Se manca un dato di ingombro, 1 pezzo equivale a 1 unit&agrave; di spazio.</p>
+      </section>
+
+      <button id="analyzeButton" class="primary" disabled>Elabora proposta</button>
+      <div id="globalMessages" class="messages"></div>
+    </aside>
+
+    <section class="content">
+      <div id="welcome" class="panel welcome">
+        <div class="welcome-icon">A/M/B</div>
+        <h2>Pronto per la prima analisi</h2>
+        <p>Carica una coppia di file riferita alla stessa sottofamiglia. La mappatura dei punti vendita nei cluster viene letta automaticamente dal file fisso incluso nel progetto.</p>
+        <ol>
+          <li>Carica l'anagrafica assortimento.</li>
+          <li>Carica le vendite degli ultimi sei mesi.</li>
+          <li>Controlla la mappatura automatica e avvia l'elaborazione.</li>
+        </ol>
+      </div>
+
+      <div id="results" class="hidden">
+        <div id="scopeBanner" class="scope-banner"></div>
+        <div id="kpis" class="kpi-grid"></div>
+
+        <nav class="tabs" aria-label="Risultati">
+          <button class="tab active" data-tab="summaryTab">Sintesi</button>
+          <button class="tab" data-tab="proposalTab">Proposta Basso</button>
+          <button class="tab" data-tab="qualityTab">Qualit&agrave; dati</button>
+        </nav>
+
+        <section id="summaryTab" class="tab-panel active">
+          <div class="panel">
+            <div class="panel-head"><h2>Assortimento attuale</h2></div>
+            <div id="baseSummary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Distribuzione referenze</h2></div>
+            <div id="barChart" class="bar-chart"></div>
+          </div>
+        </section>
+
+        <section id="proposalTab" class="tab-panel">
+          <div class="panel">
+            <div class="panel-head split">
+              <div>
+                <h2>Proposta di dimensionamento</h2>
+                <p id="proposalCaption" class="muted"></p>
+              </div>
+              <button id="exportButton" class="secondary">Esporta Excel</button>
+            </div>
+            <div class="filters">
+              <input id="proposalSearch" type="search" placeholder="Cerca ID, SKU o descrizione">
+              <select id="actionFilter"><option value="">Tutte le azioni</option></select>
+            </div>
+            <div class="table-wrap"><table id="proposalTable"></table></div>
+          </div>
+        </section>
+
+        <section id="qualityTab" class="tab-panel">
+          <div class="panel">
+            <div class="panel-head"><h2>Controlli e anomalie</h2></div>
+            <div id="qualityContent"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell footer">Elaborazione locale nel browser &middot; Nessun file caricato viene salvato dal sito</footer>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
