@@ -1,48 +1,70 @@
 # Configura assortimento
 
-Web app statica per GitHub Pages che confronta l'assegnato dei cluster Alto, Medio e Basso con le vendite aggregate degli ultimi 6 mesi.
+Web app statica per il bilanciamento degli assortimenti dei punti vendita clusterizzati in **Alto**, **Medio** e **Basso**.
 
-## Flusso
+## Funzionamento
 
-1. Caricare il file assortimento nel formato standard aziendale (`Q_Temp`).
-2. Caricare il file vendite nel formato standard aziendale (`Q_TempPV`).
-3. Selezionare la sottofamiglia, se il file ne contiene più di una.
-4. Elaborare ed esportare la proposta per il cluster Basso.
+- Il cluster **Alto** è il riferimento pari a 100%.
+- L'utente inserisce i metri lineari disponibili per Alto, Medio e Basso.
+- Il totale di `GAlto` viene convertito nei metri Alto inseriti.
+- Le capacità di Medio e Basso vengono calcolate in proporzione ai rispettivi metri.
+- Le vendite degli ultimi sei mesi determinano la priorità delle referenze.
+- L'app propone un nuovo assegnato per `GMedio` e `GBasso` senza superare lo spazio disponibile.
+- È sempre rispettata la gerarchia `Basso <= Medio <= Alto` per ciascuna referenza.
 
-## Colonne preimpostate
+## File caricati dall'utente
 
 ### Assortimento
 
-- ID: `Id`
-- EAN/SKU: `SkuCodice`
-- Descrizione: `Prodotto`
-- Reparto: `Reparto`
-- Gruppo: `Famiglia`
-- Sottofamiglia: `SttFamiglia`
-- Filtro: `Breve = N`
-- Assegnato: `GAlto`, `GMedio`, `GBasso`
-- Pezzi per collo: `Art_Pz`
+Formato fisso con almeno:
 
-### Vendite aggregate 6 mesi
+- `Id`
+- `Prodotto`
+- `Reparto`
+- `Famiglia`
+- `SttFamiglia`
+- `Breve`
+- `GAlto`
+- `GMedio`
+- `GBasso`
 
-- Articolo: `Fk_Prd`
-- Punto vendita: `Negozio`
-- Codice punto vendita: `Pv`
-- Acquisti: `Acq`
-- Vendite: `Vnd`
-- Giacenza finale: `GFn`
-- Data finale periodo: `Data`
+Vengono analizzate soltanto le righe con `Breve = N`.
 
-La riga totale e il canale `VendOnLine` vengono esclusi automaticamente dall'analisi dei punti vendita.
+### Vendite
+
+Foglio preferito `Q_TempPV` con almeno:
+
+- `Fk_Prd`
+- `Negozio`
+- `Vnd`
+- `Data`
+
+La colonna `Vnd` rappresenta i pezzi venduti nel periodo di sei mesi.
 
 ## Cluster
 
-La mappatura fissa è contenuta in `data/config/Cluster.xlsx`. La priorità è:
+La mappatura fissa è contenuta in:
+
+`data/config/Cluster.xlsx`
+
+L'app usa il livello più specifico disponibile:
 
 1. Famiglia (`Tipo = F`)
 2. Gruppo (`Tipo = G`)
 3. Reparto (`Tipo = R`)
 
+## Pubblicazione GitHub Pages
+
+Il progetto è completamente statico. Caricare nella radice del repository:
+
+- `index.html`
+- `css/`
+- `js/`
+- `data/`
+- `.nojekyll`
+
+In **Settings > Pages** selezionare la pubblicazione dal branch `main`, cartella `/root`.
+
 ## Privacy
 
-I file caricati vengono elaborati nel browser e non vengono inviati a un server.
+I file assortimento e vendite vengono elaborati localmente nel browser e non vengono caricati su un server.
