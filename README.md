@@ -1,70 +1,26 @@
-# Configura assortimento
+# Dimensionamento assortimenti
 
-Web app statica per il bilanciamento degli assortimenti dei punti vendita clusterizzati in **Alto**, **Medio** e **Basso**.
+Web app statica per GitHub Pages. Elabora localmente nel browser:
 
-## Funzionamento
+- file assortimento, foglio `Q_Temp`;
+- file vendite, foglio `Q_TempPV`;
+- mappatura fissa `data/config/Cluster.xlsx`.
 
-- Il cluster **Alto** è il riferimento pari a 100%.
-- L'utente inserisce i metri lineari disponibili per Alto, Medio e Basso.
-- Il totale di `GAlto` viene convertito nei metri Alto inseriti.
-- Le capacità di Medio e Basso vengono calcolate in proporzione ai rispettivi metri.
-- Le vendite degli ultimi sei mesi determinano la priorità delle referenze.
-- L'app propone un nuovo assegnato per `GMedio` e `GBasso` senza superare lo spazio disponibile.
-- È sempre rispettata la gerarchia `Basso <= Medio <= Alto` per ciascuna referenza.
+## Regole principali
 
-## File caricati dall'utente
+- vengono considerate soltanto le righe con `Breve = N`;
+- `GAlto` è l'assortimento di riferimento;
+- i metri Alto, Medio e Basso sono vincoli fissi di capacità;
+- la performance è calcolata dalla colonna `Vnd`, normalizzata per punti vendita e 182,5 giorni;
+- la modalità automatica usa il coefficiente di Gini per attribuire il peso tra taglio referenze e taglio quantità;
+- la modalità manuale permette di impostare il peso del taglio referenze, mentre il peso quantità è il complemento a 100%;
+- le quantità dipendono dai giorni di scorta desiderati e rispettano multipli o sottomultipli di `Art_Pz`;
+- l'output è riepilogato per `Fornitore` ed esportabile in Excel.
 
-### Assortimento
+## Pubblicazione
 
-Formato fisso con almeno:
+Caricare il contenuto di questa cartella nella radice del repository GitHub Pages. Il file principale è `index.html`.
 
-- `Id`
-- `Prodotto`
-- `Reparto`
-- `Famiglia`
-- `SttFamiglia`
-- `Breve`
-- `GAlto`
-- `GMedio`
-- `GBasso`
+## Nota sullo spazio
 
-Vengono analizzate soltanto le righe con `Breve = N`.
-
-### Vendite
-
-Foglio preferito `Q_TempPV` con almeno:
-
-- `Fk_Prd`
-- `Negozio`
-- `Vnd`
-- `Data`
-
-La colonna `Vnd` rappresenta i pezzi venduti nel periodo di sei mesi.
-
-## Cluster
-
-La mappatura fissa è contenuta in:
-
-`data/config/Cluster.xlsx`
-
-L'app usa il livello più specifico disponibile:
-
-1. Famiglia (`Tipo = F`)
-2. Gruppo (`Tipo = G`)
-3. Reparto (`Tipo = R`)
-
-## Pubblicazione GitHub Pages
-
-Il progetto è completamente statico. Caricare nella radice del repository:
-
-- `index.html`
-- `css/`
-- `js/`
-- `data/`
-- `.nojekyll`
-
-In **Settings > Pages** selezionare la pubblicazione dal branch `main`, cartella `/root`.
-
-## Privacy
-
-I file assortimento e vendite vengono elaborati localmente nel browser e non vengono caricati su un server.
+In assenza di centimetri lineari per singola referenza, la capacità derivata dai metri viene modellata usando `GAlto` come base equivalente. I metri restano comunque un limite massimo e non vengono modificati dall'algoritmo.
