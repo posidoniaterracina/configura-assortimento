@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Bilanciamento assortimenti per cluster Alto, Medio e Basso">
+  <title>Bilanciamento assortimenti</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div>
+        <p class="eyebrow">GRUPPO ORIZZONTE</p>
+        <h1>Bilanciamento assortimenti</h1>
+        <p class="subtitle">Dimensiona Medio e Basso partendo dall'assortimento Alto e dalle vendite reali.</p>
+      </div>
+      <div id="clusterStatus" class="status-pill">Caricamento cluster...</div>
+    </div>
+  </header>
+
+  <main class="shell layout">
+    <aside class="panel controls">
+      <section>
+        <h2>1. File di input</h2>
+        <label class="upload-box" for="assortmentFile">
+          <span class="upload-title">File assortimento</span>
+          <span class="upload-help">Formato fisso, foglio Q_Temp. Vengono analizzate solo le righe Breve = N.</span>
+          <input id="assortmentFile" type="file" accept=".xlsx,.xls">
+          <span id="assortmentName" class="file-name">Nessun file selezionato</span>
+        </label>
+        <label class="upload-box" for="salesFile">
+          <span class="upload-title">File vendite</span>
+          <span class="upload-help">Formato fisso, foglio Q_TempPV. Le vendite sono lette dalla colonna Vnd.</span>
+          <input id="salesFile" type="file" accept=".xlsx,.xls">
+          <span id="salesName" class="file-name">Nessun file selezionato</span>
+        </label>
+      </section>
+
+      <section>
+        <h2>2. Metri scaffale</h2>
+        <div class="meters-grid">
+          <label>Alto
+            <div class="input-unit"><input id="metersAlto" type="number" min="0.01" step="0.01" placeholder="10"><span>m</span></div>
+          </label>
+          <label>Medio
+            <div class="input-unit"><input id="metersMedio" type="number" min="0" step="0.01" placeholder="6"><span>m</span></div>
+          </label>
+          <label>Basso
+            <div class="input-unit"><input id="metersBasso" type="number" min="0" step="0.01" placeholder="3"><span>m</span></div>
+          </label>
+        </div>
+        <div id="ratioPreview" class="ratio-preview">Inserisci i metri per calcolare le percentuali.</div>
+      </section>
+
+      <section>
+        <h2>3. Vendite da considerare</h2>
+        <div class="multi-select" id="clusterSelect">
+          <button type="button" id="clusterSelectButton" class="multi-select-button" aria-expanded="false">
+            <span id="clusterSelectLabel">Tutti i cluster</span><span aria-hidden="true">▾</span>
+          </button>
+          <div id="clusterSelectMenu" class="multi-select-menu hidden">
+            <label><input type="checkbox" value="Tutti" checked> Tutti</label>
+            <label><input type="checkbox" value="Alto" checked> Alto</label>
+            <label><input type="checkbox" value="Medio" checked> Medio</label>
+            <label><input type="checkbox" value="Basso" checked> Basso</label>
+          </div>
+        </div>
+        <p class="note">La graduatoria dei prodotti usa la somma dei pezzi venduti nei cluster selezionati.</p>
+      </section>
+
+      <section>
+        <h2>4. Priorità del ridimensionamento</h2>
+        <label class="choice-card">
+          <input id="resizeReferences" type="checkbox" checked>
+          <span><b>Ridimensiona n° referenze</b><small>Mantiene le referenze più vendute in proporzione ai metri disponibili.</small></span>
+        </label>
+        <label class="choice-card">
+          <input id="resizeQuantities" type="checkbox" checked>
+          <span><b>Ridimensiona quantità per referenza</b><small>Riduce la profondità rispettando multipli e sottomultipli di Art_Pz.</small></span>
+        </label>
+      </section>
+
+      <button id="analyzeButton" class="primary" disabled>Analizza e dimensiona</button>
+      <div id="messages" class="messages" aria-live="polite"></div>
+    </aside>
+
+    <section class="content">
+      <div id="welcome" class="panel welcome">
+        <div class="welcome-mark">A / M / B</div>
+        <h2>Nuovo modello di dimensionamento</h2>
+        <p>L'assortimento Alto vale 100%. Medio e Basso vengono ricostruiti in base al rapporto tra i metri disponibili e alle performance di vendita.</p>
+        <div class="example">
+          <span>Alto 10 m = 100%</span>
+          <span>Medio 6 m = top 60%</span>
+          <span>Basso 3 m = top 30%</span>
+        </div>
+      </div>
+
+      <div id="results" class="hidden">
+        <div id="scopeBanner" class="scope-banner"></div>
+        <div id="kpis" class="kpi-grid"></div>
+
+        <nav class="tabs">
+          <button class="tab active" data-tab="supplierTab">Riepilogo fornitori</button>
+          <button class="tab" data-tab="detailTab">Dettaglio referenze</button>
+          <button class="tab" data-tab="qualityTab">Controlli</button>
+        </nav>
+
+        <section id="supplierTab" class="tab-panel active">
+          <div class="panel">
+            <div class="panel-head split">
+              <div>
+                <h2>Riepilogo per fornitore</h2>
+                <p class="muted">I risultati sono aggregati usando la colonna Fornitore.</p>
+              </div>
+              <button id="exportButton" class="secondary">Esporta Excel</button>
+            </div>
+            <div class="table-wrap"><table id="supplierTable"></table></div>
+          </div>
+        </section>
+
+        <section id="detailTab" class="tab-panel">
+          <div class="panel">
+            <div class="panel-head split">
+              <div>
+                <h2>Dettaglio delle referenze</h2>
+                <p class="muted">Ordinamento per fornitore e performance decrescente.</p>
+              </div>
+              <input id="searchInput" class="search" type="search" placeholder="Cerca prodotto, ID o fornitore">
+            </div>
+            <div class="table-wrap"><table id="detailTable"></table></div>
+          </div>
+        </section>
+
+        <section id="qualityTab" class="tab-panel">
+          <div class="panel">
+            <div class="panel-head"><h2>Controlli sui dati</h2></div>
+            <div id="qualityContent"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell footer">Elaborazione locale nel browser: i file caricati non vengono inviati a server esterni.</footer>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
