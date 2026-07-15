@@ -1,43 +1,48 @@
 # Configura assortimento
 
-Web app statica per dimensionare l'assortimento dei punti vendita in base ai cluster **Alto**, **Medio** e **Basso**.
+Web app statica per GitHub Pages che confronta l'assegnato dei cluster Alto, Medio e Basso con le vendite aggregate degli ultimi 6 mesi.
 
-## Funzionamento
+## Flusso
 
-- Il file fisso `data/config/Cluster.xlsx` contiene la mappatura dei punti vendita nei cluster.
-- A ogni elaborazione si caricano dalla pagina:
-  1. l'anagrafica assortimento della sottofamiglia;
-  2. le vendite degli ultimi sei mesi della stessa sottofamiglia.
-- L'app analizza solo le righe con `Breve = N`.
-- `GAlto`, `GMedio` e `GBasso` rappresentano la giacenza teorica assegnata a ciascun punto vendita del relativo cluster.
-- I file caricati vengono elaborati nel browser e non sono inviati a un server.
+1. Caricare il file assortimento nel formato standard aziendale (`Q_Temp`).
+2. Caricare il file vendite nel formato standard aziendale (`Q_TempPV`).
+3. Selezionare la sottofamiglia, se il file ne contiene più di una.
+4. Elaborare ed esportare la proposta per il cluster Basso.
 
-## Pubblicazione GitHub Pages
+## Colonne preimpostate
 
-Il repository deve contenere `index.html` direttamente nella radice. In GitHub:
+### Assortimento
 
-1. `Settings` → `Pages`;
-2. `Deploy from a branch`;
-3. branch `main`, cartella `/ (root)`;
-4. `Save`.
+- ID: `Id`
+- EAN/SKU: `SkuCodice`
+- Descrizione: `Prodotto`
+- Reparto: `Reparto`
+- Gruppo: `Famiglia`
+- Sottofamiglia: `SttFamiglia`
+- Filtro: `Breve = N`
+- Assegnato: `GAlto`, `GMedio`, `GBasso`
+- Pezzi per collo: `Art_Pz`
 
-L'app sarà disponibile su:
+### Vendite aggregate 6 mesi
 
-`https://NOMEUTENTE.github.io/NOMEREPOSITORY/`
+- Articolo: `Fk_Prd`
+- Punto vendita: `Negozio`
+- Codice punto vendita: `Pv`
+- Acquisti: `Acq`
+- Vendite: `Vnd`
+- Giacenza finale: `GFn`
+- Data finale periodo: `Data`
 
-## Struttura
+La riga totale e il canale `VendOnLine` vengono esclusi automaticamente dall'analisi dei punti vendita.
 
-```text
-index.html
-css/style.css
-js/engine.js
-js/app.js
-data/config/Cluster.xlsx
-data/templates/Anagrafica_Template.xlsx
-data/templates/Vendite_Template.xlsx
-.nojekyll
-```
+## Cluster
 
-## Nota sulla riservatezza
+La mappatura fissa è contenuta in `data/config/Cluster.xlsx`. La priorità è:
 
-Con un repository pubblico, anche `Cluster.xlsx` è pubblicamente scaricabile. I file caricati dall'utente nella web app restano invece locali nel browser.
+1. Famiglia (`Tipo = F`)
+2. Gruppo (`Tipo = G`)
+3. Reparto (`Tipo = R`)
+
+## Privacy
+
+I file caricati vengono elaborati nel browser e non vengono inviati a un server.

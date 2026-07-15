@@ -10,9 +10,20 @@
     salesWorkbook: null,
     assortmentRows: [],
     salesRows: [],
-    assortmentMapping: {},
-    salesMapping: {},
-    clusterMapping: {},
+    assortmentMapping: {
+      id: "Id", sku: "SkuCodice", description: "Prodotto", reparto: "Reparto",
+      gruppo: "Famiglia", famiglia: "SttFamiglia", breve: "Breve",
+      galto: "GAlto", gmedio: "GMedio", gbasso: "GBasso",
+      pack: "Art_Pz", volume: "", brand: "Brand"
+    },
+    salesMapping: {
+      article: "Fk_Prd", store: "Negozio", storeCode: "Pv", quantity: "Vnd",
+      date: "Data", purchases: "Acq", finalStock: "GFn"
+    },
+    clusterMapping: {
+      store: "Descrizione", priority: "Priorita", type: "Tipo",
+      reparto: "Reparto", gruppo: "Gruppo", famiglia: "Famiglia"
+    },
     scope: { reparto: "", gruppo: "", famiglia: "" },
     preparedAssortment: [],
     mappedStores: [],
@@ -24,29 +35,13 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
-  var ASSORTMENT_FIELDS = [
-    { key: "id", label: "Codice articolo / ID", required: true },
-    { key: "sku", label: "SKU / EAN", required: false },
-    { key: "description", label: "Descrizione", required: true },
-    { key: "reparto", label: "Reparto", required: false },
-    { key: "gruppo", label: "Gruppo / famiglia", required: false },
-    { key: "famiglia", label: "Sottofamiglia", required: false },
-    { key: "breve", label: "Breve", required: true },
-    { key: "galto", label: "GAlto", required: true },
-    { key: "gmedio", label: "GMedio", required: true },
-    { key: "gbasso", label: "GBasso", required: true },
-    { key: "pack", label: "Pezzi per collo", required: false },
-    { key: "volume", label: "Ingombro unitario", required: false },
-    { key: "brand", label: "Marca", required: false }
+  var REQUIRED_ASSORTMENT_COLUMNS = [
+    "Id", "SkuCodice", "Prodotto", "Reparto", "Famiglia", "SttFamiglia",
+    "Breve", "GAlto", "GMedio", "GBasso"
   ];
 
-  var SALES_FIELDS = [
-    { key: "article", label: "Codice articolo / SKU", required: true },
-    { key: "store", label: "Punto vendita", required: true },
-    { key: "quantity", label: "Quantità venduta", required: true },
-    { key: "date", label: "Data vendita", required: true },
-    { key: "salesValue", label: "Venduto €", required: false },
-    { key: "margin", label: "Margine €", required: false }
+  var REQUIRED_SALES_COLUMNS = [
+    "Fk_Prd", "Prodotto", "Pv", "Negozio", "Acq", "Vnd", "GFn", "Data"
   ];
 
   function escapeHtml(value) {
@@ -115,51 +110,14 @@
     return Object.keys(seen);
   }
 
-  function createMapping(container, fields, rows, detected, prefix) {
-    var columns = columnsOf(rows);
-    container.innerHTML = "";
-    fields.forEach(function (field) {
-      var label = document.createElement("label");
-      label.textContent = field.label + (field.required ? " *" : "");
-      var select = document.createElement("select");
-      select.id = prefix + "_" + field.key;
-      var blank = document.createElement("option");
-      blank.value = "";
-      blank.textContent = field.required ? "Seleziona colonna" : "Non disponibile";
-      select.appendChild(blank);
-      columns.forEach(function (column) {
-        var option = document.createElement("option");
-        option.value = column;
-        option.textContent = column;
-        select.appendChild(option);
-      });
-      if (detected[field.key] && columns.indexOf(detected[field.key]) >= 0) select.value = detected[field.key];
-      select.addEventListener("change", function () {
-        collectMappings();
-        if (prefix === "assortment") refreshScopeSelectors();
-        updateReadyState();
-      });
-      label.appendChild(select);
-      container.appendChild(label);
-    });
+  function missingColumns(rows, required) {
+    var cols = columnsOf(rows);
+    return required.filter(function (name) { return cols.indexOf(name) < 0; });
   }
 
-  function collectMapping(fields, prefix) {
-    var mapping = {};
-    fields.forEach(function (field) {
-      var el = $(prefix + "_" + field.key);
-      mapping[field.key] = el ? el.value : "";
-    });
-    return mapping;
-  }
-
-  function collectMappings() {
-    state.assortmentMapping = collectMapping(ASSORTMENT_FIELDS, "assortment");
-    state.salesMapping = collectMapping(SALES_FIELDS, "sales");
-  }
-
-  function mappingValid(fields, mapping) {
-    return fields.every(function (field) { return !field.required || Boolean(mapping[field.key]); });
+  function preferredSheet(workbook, expected) {
+    if (!workbook || !workbook.SheetNames.length) return "";
+    return workbook.SheetNames.indexOf(expected) >= 0 ? expected : workbook.SheetNames[0];
   }
 
   function setOptions(select, values, selected, emptyLabel) {
@@ -183,7 +141,6 @@
   }
 
   function refreshScopeSelectors(changedLevel) {
-    collectMappings();
     var m = state.assortmentMapping;
     var rows = state.assortmentRows;
     if (!rows.length) return;
@@ -212,32 +169,23 @@
   }
 
   function refreshAssortmentSheet() {
-    state.assortmentRows = workbookRows(state.assortmentWorkbook, $("assortmentSheet").value);
-    var detected = E.detectColumns(state.assortmentRows, E.ASSORTMENT_ALIASES);
-    createMapping($("assortmentMapping"), ASSORTMENT_FIELDS, state.assortmentRows, detected, "assortment");
-    $("mappingSection").classList.remove("hidden");
+    var sheetName = preferredSheet(state.assortmentWorkbook, "Q_Temp");
+    state.assortmentRows = workbookRows(state.assortmentWorkbook, sheetName);
+    var missing = missingColumns(state.assortmentRows, REQUIRED_ASSORTMENT_COLUMNS);
+    if (missing.length) throw new Error("File assortimento non valido. Colonne mancanti: " + missing.join(", ") + ".");
     $("scopeSection").classList.remove("hidden");
-    collectMappings();
     refreshScopeSelectors();
   }
 
   function refreshSalesSheet() {
-    state.salesRows = workbookRows(state.salesWorkbook, $("salesSheet").value);
-    var detected = E.detectColumns(state.salesRows, E.SALES_ALIASES);
-    createMapping($("salesMapping"), SALES_FIELDS, state.salesRows, detected, "sales");
-    $("mappingSection").classList.remove("hidden");
-    collectMappings();
+    var sheetName = preferredSheet(state.salesWorkbook, "Q_TempPV");
+    state.salesRows = workbookRows(state.salesWorkbook, sheetName);
+    var missing = missingColumns(state.salesRows, REQUIRED_SALES_COLUMNS);
+    if (missing.length) throw new Error("File vendite non valido. Colonne mancanti: " + missing.join(", ") + ".");
   }
 
   function updateReadyState() {
-    collectMappings();
-    var ready = Boolean(
-      state.clusterRows.length &&
-      state.assortmentRows.length &&
-      state.salesRows.length &&
-      mappingValid(ASSORTMENT_FIELDS, state.assortmentMapping) &&
-      mappingValid(SALES_FIELDS, state.salesMapping)
-    );
+    var ready = Boolean(state.clusterRows.length && state.assortmentRows.length && state.salesRows.length);
     $("parameterSection").classList.toggle("hidden", !ready);
     $("analyzeButton").disabled = !ready;
   }
@@ -249,19 +197,16 @@
       var workbook = readWorkbookFromArrayBuffer(await file.arrayBuffer());
       if (kind === "assortment") {
         state.assortmentWorkbook = workbook;
-        populateSheetSelect($("assortmentSheet"), workbook);
         refreshAssortmentSheet();
       } else {
         state.salesWorkbook = workbook;
-        populateSheetSelect($("salesSheet"), workbook);
         refreshSalesSheet();
       }
-      $("sheetSection").classList.remove("hidden");
       updateReadyState();
       message("File " + file.name + " caricato correttamente.", "info");
     } catch (error) {
       console.error(error);
-      message("Impossibile leggere " + file.name + ". Verifica che sia un file Excel valido.", "error");
+      message(error.message || ("Impossibile leggere " + file.name + ". Verifica che sia un file Excel valido."), "error");
     }
   }
 
@@ -272,9 +217,9 @@
       state.clusterWorkbook = readWorkbookFromArrayBuffer(await response.arrayBuffer());
       state.clusterSheet = state.clusterWorkbook.SheetNames[0];
       state.clusterRows = workbookRows(state.clusterWorkbook, state.clusterSheet);
-      state.clusterMapping = E.detectColumns(state.clusterRows, E.CLUSTER_ALIASES);
-      if (!state.clusterRows.length || !state.clusterMapping.store || !state.clusterMapping.priority) {
-        throw new Error("Colonne cluster non riconosciute");
+      var missing = missingColumns(state.clusterRows, ["Descrizione", "Tipo", "Reparto", "Gruppo", "Famiglia", "Priorita"]);
+      if (!state.clusterRows.length || missing.length) {
+        throw new Error("Colonne cluster non riconosciute: " + missing.join(", "));
       }
       setStatus("Cluster caricati: " + fmt(state.clusterRows.length), "ok");
       updateReadyState();
@@ -301,10 +246,9 @@
 
   function validateBeforeAnalysis() {
     var errors = [];
-    collectMappings();
-    if (!mappingValid(ASSORTMENT_FIELDS, state.assortmentMapping)) errors.push("Completa le colonne obbligatorie dell'anagrafica.");
-    if (!mappingValid(SALES_FIELDS, state.salesMapping)) errors.push("Completa le colonne obbligatorie delle vendite.");
-    if (!state.scope.famiglia && state.assortmentMapping.famiglia) errors.push("Seleziona una famiglia/sottofamiglia per evitare di mescolare assortimenti diversi.");
+    if (!state.assortmentRows.length) errors.push("Carica il file assortimento.");
+    if (!state.salesRows.length) errors.push("Carica il file vendite.");
+    if (!state.scope.famiglia) errors.push("Seleziona una famiglia/sottofamiglia per evitare di mescolare assortimenti diversi.");
     return errors;
   }
 
@@ -383,7 +327,7 @@
     renderProposalFilters();
     renderProposalTable();
     renderQuality();
-    $("proposalCaption").textContent = "Domanda stimata Basso calcolata usando vendite, penetrazione, continuità e rapporto Basso/Medio. Rapporto applicato: " + fmt(state.proposal.basso_medio_ratio, 2) + ".";
+    $("proposalCaption").textContent = "Domanda stimata Basso calcolata usando vendite aggregate dei 6 mesi, penetrazione e rapporto Basso/Medio. Rapporto applicato: " + fmt(state.proposal.basso_medio_ratio, 2) + ".";
   }
 
   function renderBaseSummary() {
@@ -476,14 +420,15 @@
 
     var html = '<div class="quality-block">' +
       '<div class="quality-grid">' +
-      '<div class="quality-card"><span>Righe con data non valida</span><strong>' + fmt(info.invalidDates || 0) + '</strong></div>' +
-      '<div class="quality-card"><span>Righe con quantità non valida</span><strong>' + fmt(info.invalidQty || 0) + '</strong></div>' +
+      '<div class="quality-card"><span>Righe escluse (totali/online)</span><strong>' + fmt(info.ignoredRows || 0) + '</strong></div>' +
+      '<div class="quality-card"><span>Date non valide</span><strong>' + fmt(info.invalidDates || 0) + '</strong></div>' +
+      '<div class="quality-card"><span>Quantità vendita non valide</span><strong>' + fmt(info.invalidQty || 0) + '</strong></div>' +
       '<div class="quality-card"><span>PV non mappati</span><strong>' + fmt(info.unmappedStores || 0) + '</strong></div>' +
       '<div class="quality-card"><span>Vendite senza articolo</span><strong>' + fmt(info.unmatchedArticles || 0) + '</strong></div>' +
       '<div class="quality-card"><span>Codici duplicati</span><strong>' + fmt(duplicates) + '</strong></div>' +
       '<div class="quality-card"><span>Referenze senza vendite</span><strong>' + fmt(noSales) + '</strong></div>' +
       '</div>' +
-      '<p><strong>Periodo vendite utilizzato:</strong> ' + fmtDate(info.start) + ' – ' + fmtDate(info.end) + '.</p>' +
+      '<p><strong>Periodo considerato:</strong> 6 mesi con data finale ' + fmtDate(info.end) + '.</p>' +
       '<p><strong>Referenze con assegnato zero in tutti i cluster:</strong> ' + fmt(zeroAll) + '.</p>';
     if (names.length) html += '<div class="message warn"><strong>Punti vendita non riconosciuti:</strong> ' + escapeHtml(names.join(", ")) + (info.unmappedStores > names.length ? "…" : "") + "</div>";
     if (!(info.invalidDates || info.invalidQty || info.unmappedStores || info.unmatchedArticles || duplicates)) html += '<div class="message info">Nessuna anomalia bloccante rilevata.</div>';
@@ -529,7 +474,6 @@
         Vendita_mensile_Basso: r.monthly_per_store_Basso,
         Domanda_stimata_Basso: r.estimated_monthly_Basso,
         Penetrazione_Basso: r.penetration_Basso,
-        Continuita_Basso: r.continuity_Basso,
         Punteggio_generale: r.score_generale,
         GBasso_proposto: r.GBasso_proposto,
         Delta_GBasso: r.delta_GBasso,
@@ -545,9 +489,6 @@
       var subset = proposalRows.filter(function (r) { return r.Azione_Basso === action; });
       if (subset.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(subset), action.substring(0, 31));
     });
-
-    var clusterRows = state.mappedStores.map(function (r) { return { Punto_vendita: r.store, Cluster: r.cluster }; });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clusterRows), "Mappatura_usata");
 
     var safeName = (state.scope.famiglia || "assortimento").replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
     XLSX.writeFile(wb, "proposta_assortimento_" + safeName + ".xlsx", { compression: true });
@@ -573,8 +514,6 @@
 
     $("assortmentFile").addEventListener("change", function (event) { readUserFile(event.target.files[0], "assortment"); });
     $("salesFile").addEventListener("change", function (event) { readUserFile(event.target.files[0], "sales"); });
-    $("assortmentSheet").addEventListener("change", function () { refreshAssortmentSheet(); updateReadyState(); });
-    $("salesSheet").addEventListener("change", function () { refreshSalesSheet(); updateReadyState(); });
     $("scopeReparto").addEventListener("change", function () { state.scope.gruppo = ""; state.scope.famiglia = ""; refreshScopeSelectors("reparto"); });
     $("scopeGruppo").addEventListener("change", function () { state.scope.famiglia = ""; refreshScopeSelectors("gruppo"); });
     $("scopeFamiglia").addEventListener("change", function () { state.scope.famiglia = this.value; });

@@ -54,7 +54,7 @@
   var SALES_ALIASES = {
     article: ["Id", "Fk_Prd", "Codice articolo", "Articolo", "SKU", "SkuCodice", "EAN"],
     store: ["Punto vendita", "PuntoVendita", "PDV", "Negozio", "Store", "Descrizione PDV", "Descrizione"],
-    quantity: ["Quantita", "Quantit\u00e0", "Pezzi", "Qta", "Vendite pezzi", "Qta venduta"],
+    quantity: ["Vnd", "Quantita", "Quantit\u00e0", "Pezzi", "Qta", "Vendite pezzi", "Qta venduta"],
     date: ["Data", "Giorno", "Mese", "Data vendita"],
     salesValue: ["Venduto", "Fatturato", "Valore vendite", "Importo"],
     margin: ["Margine", "Margine euro", "Margine \u20ac"]
@@ -181,55 +181,65 @@
       if (x.article_id) articleLookup[normalizeId(x.article_id)] = idx;
       if (x.sku) articleLookup[normalizeId(x.sku)] = idx;
     });
-    var parsed = [];
+
+    var usable = [];
+    var ignoredRows = 0;
     var invalidDates = 0;
     var invalidQty = 0;
-    rows.forEach(function (row) {
-      var date = parseDate(row[mapping.date], XLSXRef);
-      var quantity = toNumber(row[mapping.quantity], NaN);
-      if (!date) invalidDates += 1;
-      if (!Number.isFinite(quantity)) invalidQty += 1;
-      if (!date || !Number.isFinite(quantity)) return;
-      parsed.push({
-        article_key: normalizeId(row[mapping.article]),
-        store: String(row[mapping.store] || "").trim(),
-        store_key: normalizeText(row[mapping.store]),
-        quantity: quantity,
-        date: date
-      });
-    });
-    if (!parsed.length) return { sales: [], info: { invalidDates: invalidDates, invalidQty: invalidQty, unmappedStores: 0, unmatchedArticles: 0, start: null, end: null } };
-    var end = new Date(Math.max.apply(null, parsed.map(function (x) { return x.date.getTime(); })));
-    var start = new Date(end.getFullYear(), end.getMonth() - months, end.getDate() + 1);
-    var unmapped = {};
     var unmatchedArticles = 0;
-    var usable = [];
-    parsed.forEach(function (x) {
-      if (x.date < start || x.date > end) return;
-      var store = storeLookup[x.store_key];
-      if (!store) { if (x.store) unmapped[x.store_key] = x.store; return; }
-      var articleIndex = articleLookup[x.article_key];
+    var unmapped = {};
+    var dates = [];
+
+    rows.forEach(function (row) {
+      var articleKey = normalizeId(row[mapping.article]);
+      var storeName = String(row[mapping.store] || "").trim();
+      var storeKey = normalizeText(storeName);
+
+      // Esclude la riga totale e il canale online: l'analisi riguarda solo i PV clusterizzati.
+      if (!articleKey || !storeName || storeKey === normalizeText("VendOnLine")) {
+        ignoredRows += 1;
+        return;
+      }
+
+      var quantity = toNumber(row[mapping.quantity], NaN);
+      if (!Number.isFinite(quantity)) { invalidQty += 1; return; }
+
+      var date = parseDate(row[mapping.date], XLSXRef);
+      if (date) dates.push(date);
+      else invalidDates += 1;
+
+      var store = storeLookup[storeKey];
+      if (!store) { unmapped[storeKey] = storeName; return; }
+      var articleIndex = articleLookup[articleKey];
       if (articleIndex === undefined) { unmatchedArticles += 1; return; }
+
       usable.push({
         articleIndex: articleIndex,
         store: store.store,
         store_key: store.store_key,
         cluster: store.cluster,
-        quantity: x.quantity,
-        date: x.date,
-        month: monthKey(x.date)
+        quantity: Math.max(0, quantity),
+        purchases: mapping.purchases ? Math.max(0, toNumber(row[mapping.purchases], 0)) : 0,
+        final_stock: mapping.finalStock ? Math.max(0, toNumber(row[mapping.finalStock], 0)) : 0,
+        date: date
       });
     });
+
+    var end = dates.length ? new Date(Math.max.apply(null, dates.map(function (x) { return x.getTime(); }))) : null;
+    var start = end ? new Date(end.getFullYear(), end.getMonth() - months + 1, 1) : null;
+
     return {
       sales: usable,
       info: {
+        ignoredRows: ignoredRows,
         invalidDates: invalidDates,
         invalidQty: invalidQty,
         unmappedStores: Object.keys(unmapped).length,
         unmappedStoreNames: Object.keys(unmapped).map(function (k) { return unmapped[k]; }),
         unmatchedArticles: unmatchedArticles,
         start: start,
-        end: end
+        end: end,
+        aggregatePeriodMonths: months
       }
     };
   }
@@ -253,28 +263,27 @@
     clusterMapping.forEach(function (x) { storeCounts[x.cluster] += 1; });
 
     CLUSTERS.forEach(function (cluster) {
-      var stats = result.map(function () { return { pieces: 0, stores: {}, months: {} }; });
+      var stats = result.map(function () { return { pieces: 0, stores: {} }; });
       sales.forEach(function (sale) {
         if (sale.cluster !== cluster) return;
         var s = stats[sale.articleIndex];
         s.pieces += sale.quantity;
-        if (sale.quantity > 0) { s.stores[sale.store_key] = true; s.months[sale.month] = true; }
+        if (sale.quantity > 0) s.stores[sale.store_key] = true;
       });
       var nStores = Math.max(storeCounts[cluster], 1);
       result.forEach(function (row, idx) {
         var s = stats[idx];
         row["pieces_" + cluster] = s.pieces;
         row["active_stores_" + cluster] = Object.keys(s.stores).length;
-        row["active_months_" + cluster] = Object.keys(s.months).length;
         row["monthly_per_store_" + cluster] = s.pieces / (months * nStores);
         row["penetration_" + cluster] = row["active_stores_" + cluster] / nStores;
-        row["continuity_" + cluster] = row["active_months_" + cluster] / months;
+        row["continuity_" + cluster] = null;
         row["coverage_months_" + cluster] = row["monthly_per_store_" + cluster] > 0 ? row["G" + cluster] / row["monthly_per_store_" + cluster] : 0;
       });
       var ranks = percentileRanks(result.map(function (x) { return x["monthly_per_store_" + cluster]; }));
       result.forEach(function (row, idx) {
         row["velocity_pct_" + cluster] = ranks[idx];
-        row["score_" + cluster] = ranks[idx] * 0.50 + row["penetration_" + cluster] * 100 * 0.25 + row["continuity_" + cluster] * 100 * 0.25;
+        row["score_" + cluster] = ranks[idx] * 0.65 + row["penetration_" + cluster] * 100 * 0.35;
       });
     });
     result.forEach(function (row) {
