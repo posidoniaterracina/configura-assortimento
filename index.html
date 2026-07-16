@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Dimensionamento assortimenti per cluster Alto, Medio e Basso">
-  <title>Dimensionamento assortimenti</title>
-  <link rel="stylesheet" href="css/style.css?v=20260715-3">
+  <meta name="description" content="Bilanciamento degli assortimenti per cluster Alto, Medio e Basso">
+  <title>Configura assortimento</title>
+  <link rel="stylesheet" href="css/app-v3-1.css?v=3.1.0">
 </head>
 <body>
   <header class="topbar">
     <div class="shell topbar-inner">
       <div>
         <p class="eyebrow">GRUPPO ORIZZONTE</p>
-        <h1>Dimensionamento assortimenti</h1>
-        <p class="subtitle">I metri sono il vincolo fisso. Vendite, concentrazione e giorni di scorta determinano referenze e quantità.</p>
+        <h1>Configura assortimento</h1>
+        <p class="subtitle">Dimensionamento di referenze e quantità in base a metri, vendite e giorni di scorta.</p>
       </div>
       <div class="topbar-status">
         <div id="clusterStatus" class="status-pill">Caricamento cluster...</div>
-        <small>Versione 2.1</small>
+        <small>Versione 3.1</small>
       </div>
     </div>
   </header>
@@ -28,20 +28,21 @@
         <h2>1. File di input</h2>
         <label class="upload-box" for="assortmentFile">
           <span class="upload-title">File assortimento</span>
-          <span class="upload-help">Foglio Q_Temp. Filtro automatico: Breve = N.</span>
+          <span class="upload-help">Foglio Q_Temp. Sono considerate solo le righe con Breve = N.</span>
           <input id="assortmentFile" type="file" accept=".xlsx,.xls">
           <span id="assortmentName" class="file-name">Nessun file selezionato</span>
         </label>
         <label class="upload-box" for="salesFile">
           <span class="upload-title">File vendite</span>
-          <span class="upload-help">Foglio Q_TempPV. La performance usa la colonna Vnd.</span>
+          <span class="upload-help">Foglio Q_TempPV. Le vendite sono lette dalla colonna Vnd.</span>
           <input id="salesFile" type="file" accept=".xlsx,.xls">
           <span id="salesName" class="file-name">Nessun file selezionato</span>
         </label>
       </section>
 
       <section>
-        <h2>2. Metri scaffale — vincolo fisso</h2>
+        <h2>2. Metri scaffale</h2>
+        <p class="section-help">I metri sono il vincolo fisso. L'Alto rappresenta il 100%.</p>
         <div class="meters-grid">
           <label>Alto
             <div class="input-unit"><input id="metersAlto" type="number" min="0.01" step="0.01" placeholder="10"><span>m</span></div>
@@ -57,43 +58,44 @@
       </section>
 
       <section>
-        <h2>3. Cluster vendite da analizzare</h2>
-        <details id="clusterSelect" class="cluster-picker">
-          <summary>
-            <span id="clusterSelectLabel">Tutti i cluster</span>
-            <span aria-hidden="true">▾</span>
-          </summary>
-          <div id="clusterSelectMenu" class="cluster-picker-menu">
-            <label class="master-option"><input id="clusterAll" type="checkbox" value="Tutti" checked> Tutti</label>
+        <h2>3. Cluster da usare nelle vendite</h2>
+        <div class="dropdown" id="clusterDropdown">
+          <button id="clusterMenuButton" class="dropdown-button" type="button" aria-expanded="false" aria-controls="clusterMenu">
+            <span id="clusterSelectLabel">Tutti i cluster</span><span aria-hidden="true">▾</span>
+          </button>
+          <div id="clusterMenu" class="dropdown-menu hidden" role="group" aria-label="Cluster vendite">
+            <label class="master-option"><input id="clusterAll" type="checkbox" checked> Tutti</label>
             <label><input class="cluster-option" type="checkbox" value="Alto" checked> Alto</label>
             <label><input class="cluster-option" type="checkbox" value="Medio" checked> Medio</label>
             <label><input class="cluster-option" type="checkbox" value="Basso" checked> Basso</label>
           </div>
-        </details>
+        </div>
         <div id="clusterChips" class="chips" aria-live="polite"></div>
-        <p class="note">La graduatoria usa solo i punti vendita appartenenti ai cluster selezionati e normalizza le vendite per il numero di negozi.</p>
+        <p class="note">La graduatoria usa solo i punti vendita dei cluster selezionati e normalizza le vendite per il numero di negozi.</p>
       </section>
 
       <section>
         <h2>4. Bilanciamento del taglio</h2>
-        <label class="field-label" for="cutMode">Modalità</label>
-        <select id="cutMode" class="select-control">
-          <option value="auto">Automatica in base alla concentrazione delle vendite</option>
-          <option value="manual">Manuale</option>
-        </select>
-
-        <div id="manualWeights" class="weight-box is-disabled" aria-disabled="true">
-          <div class="weight-grid">
-            <label for="referenceWeight">Peso taglio referenze
-              <div class="input-unit"><input id="referenceWeight" type="number" min="0" max="100" step="1" value="50" disabled><span>%</span></div>
-            </label>
-            <label for="quantityWeight">Peso taglio quantità
-              <div class="input-unit readonly"><input id="quantityWeight" type="number" value="50" readonly tabindex="-1"><span>%</span></div>
-            </label>
-          </div>
-          <div class="weight-total">Totale: <b id="weightTotal">100%</b></div>
+        <div class="mode-grid" role="radiogroup" aria-label="Modalità bilanciamento">
+          <label class="mode-card">
+            <input id="cutModeAuto" name="cutMode" type="radio" value="auto" checked>
+            <span><b>Automatico</b><small>Il Gini decide il peso tra taglio referenze e quantità.</small></span>
+          </label>
+          <label class="mode-card">
+            <input id="cutModeManual" name="cutMode" type="radio" value="manual">
+            <span><b>Manuale</b><small>Imposta direttamente il peso del taglio referenze.</small></span>
+          </label>
         </div>
-        <div id="autoWeightInfo" class="auto-info">Il peso automatico verrà calcolato dopo l’analisi delle vendite.</div>
+
+        <div id="weightPanel" class="weight-panel is-auto">
+          <div class="weight-head">
+            <span>Taglio referenze <b id="referenceWeightLabel">50%</b></span>
+            <span>Taglio quantità <b id="quantityWeightLabel">50%</b></span>
+          </div>
+          <input id="referenceWeight" class="weight-range" type="range" min="0" max="100" step="1" value="50" disabled>
+          <div class="weight-scale"><span>Più quantità</span><span>Equilibrato</span><span>Più referenze</span></div>
+          <div id="autoWeightInfo" class="auto-info">Carica i file per calcolare il suggerimento automatico.</div>
+        </div>
       </section>
 
       <section>
@@ -106,22 +108,20 @@
             <div class="input-unit"><input id="stockDaysBasso" type="number" min="1" step="1" value="30"><span>gg</span></div>
           </label>
         </div>
-        <p class="note">Le quantità sono calcolate sulla vendita media giornaliera per punto vendita e arrotondate a multipli o sottomultipli di Art_Pz.</p>
+        <p class="note">Le quantità vengono arrotondate a multipli o sottomultipli di Art_Pz.</p>
       </section>
 
-      <button id="analyzeButton" class="primary" disabled>Analizza e dimensiona</button>
+      <button id="analyzeButton" class="primary" type="button" disabled>Analizza e dimensiona</button>
       <div id="messages" class="messages" aria-live="polite"></div>
     </aside>
 
     <section class="content">
       <div id="welcome" class="panel welcome">
         <div class="welcome-mark">A / M / B</div>
-        <h2>Metri fissi, taglio intelligente</h2>
-        <p>L’Alto è il riferimento al 100%. Medio e Basso vengono dimensionati entro i metri disponibili, mantenendo per primi i prodotti con le migliori performance.</p>
+        <h2>Riduzione guidata dalle vendite</h2>
+        <p>Il motore mantiene per prime le referenze più performanti e riduce quantità e ampiezza assortimentale entro i metri disponibili.</p>
         <div class="example">
-          <span>Metri = capacità massima</span>
-          <span>Gini = tipo di taglio</span>
-          <span>Giorni scorta = quantità</span>
+          <span>Metri = capacità</span><span>Vendite = graduatoria</span><span>Gini = tipo di taglio</span><span>Scorta = quantità</span>
         </div>
       </div>
 
@@ -130,7 +130,7 @@
         <div id="methodBanner" class="method-banner"></div>
         <div id="kpis" class="kpi-grid"></div>
 
-        <nav class="tabs">
+        <nav class="tabs" aria-label="Risultati">
           <button type="button" class="tab active" data-tab="supplierTab">Riepilogo fornitori</button>
           <button type="button" class="tab" data-tab="detailTab">Dettaglio referenze</button>
           <button type="button" class="tab" data-tab="qualityTab">Controlli e metodo</button>
@@ -139,7 +139,7 @@
         <section id="supplierTab" class="tab-panel active">
           <div class="panel">
             <div class="panel-head split">
-              <div><h2>Riepilogo per fornitore</h2><p class="muted">Aggregazione tramite la colonna Fornitore.</p></div>
+              <div><h2>Riepilogo per fornitore</h2><p class="muted">Aggregazione tramite la colonna Fornitore. Passa il mouse o porta il focus sull’icona <b>i</b> per leggere la spiegazione di ogni colonna.</p></div>
               <button id="exportButton" type="button" class="secondary">Esporta Excel</button>
             </div>
             <div class="table-wrap"><table id="supplierTable"></table></div>
@@ -149,7 +149,7 @@
         <section id="detailTab" class="tab-panel">
           <div class="panel">
             <div class="panel-head split">
-              <div><h2>Dettaglio delle referenze</h2><p class="muted">Ordinamento per performance decrescente.</p></div>
+              <div><h2>Dettaglio referenze</h2><p class="muted">Ordinamento per performance decrescente. Passa il mouse o porta il focus sull’icona <b>i</b> per leggere la spiegazione di ogni colonna.</p></div>
               <input id="searchInput" class="search" type="search" placeholder="Cerca prodotto, ID o fornitore">
             </div>
             <div class="table-wrap"><table id="detailTable"></table></div>
@@ -158,7 +158,7 @@
 
         <section id="qualityTab" class="tab-panel">
           <div class="panel">
-            <div class="panel-head"><h2>Controlli sui dati e parametri applicati</h2></div>
+            <div class="panel-head"><h2>Controlli sui dati e parametri</h2></div>
             <div id="qualityContent"></div>
           </div>
         </section>
@@ -166,11 +166,13 @@
     </section>
   </main>
 
+  <div id="columnTooltip" class="column-tooltip-popover hidden" role="tooltip" aria-live="polite"></div>
+
   <footer class="shell footer">Elaborazione locale nel browser: assortimento e vendite non vengono inviati a server esterni.</footer>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>if (!window.XLSX) { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>'); }</script>
-  <script src="js/engine.js?v=20260715-3"></script>
-  <script src="js/app.js?v=20260715-3"></script>
+  <script src="js/engine-v3.js?v=3.1.0"></script>
+  <script src="js/app-v3-1.js?v=3.1.0"></script>
 </body>
 </html>

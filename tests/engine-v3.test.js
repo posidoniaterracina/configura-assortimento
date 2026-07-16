@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const context={window:{}};vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/../js/engine-v3.js','utf8'),context);const E=context.window.AssortmentEngineV3;
+const assortmentRows=JSON.parse(fs.readFileSync('/tmp/assortment.json','utf8'));const salesRows=JSON.parse(fs.readFileSync('/tmp/sales.json','utf8'));const clusterRows=JSON.parse(fs.readFileSync('/tmp/clusters.json','utf8'));
+const assortment=E.prepareAssortment(assortmentRows);assert.strictEqual(assortment.length,66);
+const scope=E.detectScope(assortment);assert.strictEqual(scope.multiple,false);assert.strictEqual(scope.famiglia,'Olio Lubrificante');
+const mapping=E.prepareClusterMapping(clusterRows,scope);assert.strictEqual(mapping.length,20);const counts=mapping.reduce((a,r)=>(a[r.cluster]=(a[r.cluster]||0)+1,a),{});assert.deepStrictEqual(JSON.parse(JSON.stringify(counts)),{Alto:4,Medio:11,Basso:5});
+const all=E.calculatePerformance(assortment,salesRows,mapping,['Alto','Medio','Basso']);const high=E.calculatePerformance(assortment,salesRows,mapping,['Alto']);assert.strictEqual(all.metrics.selectedStoreCount,20);assert.strictEqual(high.metrics.selectedStoreCount,4);assert.ok(all.metrics.totalSales>high.metrics.totalSales);
+const meters={alto:10,medio:6,basso:3};const total=assortment.reduce((s,r)=>s+r.GAlto,0);
+const q=E.buildProposals(all.rows,meters,{cutMode:'manual',manualReferenceWeight:0,stockDaysMedio:30,stockDaysBasso:30},all.metrics);const r=E.buildProposals(all.rows,meters,{cutMode:'manual',manualReferenceWeight:100,stockDaysMedio:30,stockDaysBasso:30},all.metrics);const a=E.buildProposals(all.rows,meters,{cutMode:'auto',manualReferenceWeight:50,stockDaysMedio:30,stockDaysBasso:30},all.metrics);
+assert.strictEqual(q.medium.targetReferences,66);assert.strictEqual(r.medium.targetReferences,Math.round(66*.6));assert.strictEqual(q.medium.quantityCapacity,Math.round(total*.6));assert.strictEqual(q.low.quantityCapacity,Math.round(total*.3));assert.notStrictEqual(q.medium.targetReferences,r.medium.targetReferences);assert.ok(a.weights.referenceWeight>=.2&&a.weights.referenceWeight<=.9);
+for(const row of a.rows){assert.ok(row.GBasso_proposto<=row.GMedio_proposto);assert.ok(row.GMedio_proposto<=row.GAlto);assert.ok(E.quantityLadder(row.pack_size,row.GAlto).includes(row.GMedio_proposto));assert.ok(E.quantityLadder(row.pack_size,row.GAlto).includes(row.GBasso_proposto));}
+console.log('OK - motore v3');
