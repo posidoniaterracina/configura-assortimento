@@ -39,8 +39,9 @@ def read_rows(path: str, sheet_name: str):
                 break
         if target is None:
             raise KeyError(f"Foglio non trovato: {sheet_name}")
+        target = target.lstrip("/")
         if not target.startswith("xl/"):
-            target = "xl/" + target.lstrip("/")
+            target = "xl/" + target
 
         root = ET.fromstring(archive.read(target))
         matrix = []

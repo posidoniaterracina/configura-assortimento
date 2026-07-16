@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Bilanciamento degli assortimenti per cluster Alto, Medio e Basso">
   <title>Configura assortimento</title>
-  <link rel="stylesheet" href="css/app-v3-2.css?v=3.2.0">
+  <link rel="stylesheet" href="css/app-v3-3.css?v=3.3.0">
 </head>
 <body>
   <header class="topbar">
@@ -17,7 +17,7 @@
       </div>
       <div class="topbar-status">
         <div id="clusterStatus" class="status-pill">Caricamento cluster...</div>
-        <small>Versione 3.2</small>
+        <small>Versione 3.3</small>
       </div>
     </div>
   </header>
@@ -168,7 +168,7 @@
           <div class="panel planogram-panel">
             <div class="panel-head">
               <h2>Layout scaffale</h2>
-              <p class="muted">Costruzione automatica del ripiano con due criteri: un fornitore per ripiano oppure una gradazione per ripiano. La gradazione viene riconosciuta dalla descrizione del prodotto.</p>
+              <p class="muted">La colonna Caratteristica viene sempre combinata con Fornitore, Linea o Brand. Puoi scegliere quale attributo forma i ripiani e quale ordina i prodotti sul ripiano.</p>
             </div>
 
             <div class="planogram-controls">
@@ -179,10 +179,17 @@
                   <option value="basso">Basso proposto</option>
                 </select>
               </label>
-              <label>Criterio di costruzione
-                <select id="planogramMode">
-                  <option value="supplier">Un fornitore per ripiano</option>
-                  <option value="characteristic">Una gradazione per ripiano</option>
+              <label>Attributo da combinare
+                <select id="planogramCommercialField">
+                  <option value="supplier">Fornitore</option>
+                  <option value="line">Linea</option>
+                  <option value="brand">Brand</option>
+                </select>
+              </label>
+              <label>Composizione layout
+                <select id="planogramOrientation">
+                  <option value="commercial">Fornitore per ripiano · Caratteristica sul ripiano</option>
+                  <option value="characteristic">Caratteristica per ripiano · Fornitore sul ripiano</option>
                 </select>
               </label>
               <label>Titolo stampa
@@ -208,7 +215,8 @@
                   <p id="planogramPrintMeta" class="muted"></p>
                 </div>
                 <div class="planogram-legend">
-                  <span><b>W40, W45, W50...</b> = gradazione rilevata</span>
+                  <span id="planogramLegendCharacteristic"><b>Caratteristica</b> = valore letto dalla colonna Caratteristica</span>
+                  <span id="planogramLegendCommercial"><b>Fornitore</b> = attributo commerciale selezionato</span>
                   <span><b>Q.tà</b> = quantità prevista nell'assortimento selezionato</span>
                 </div>
               </div>
@@ -226,8 +234,8 @@
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>if (!window.XLSX) { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>'); }</script>
-  <script src="js/engine-v3.js?v=3.2.0"></script>
-  <script src="js/planogram-v1.js?v=1.0.0"></script>
-  <script src="js/app-v3-2.js?v=3.2.0"></script>
+  <script src="js/engine-v3.js?v=3.3.0"></script>
+  <script src="js/planogram-v2.js?v=2.0.0"></script>
+  <script src="js/app-v3-3.js?v=3.3.0"></script>
 </body>
 </html>

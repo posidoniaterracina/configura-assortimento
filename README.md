@@ -1,4 +1,4 @@
-# Configura assortimento — versione 3.2
+# Configura assortimento — versione 3.3
 
 Web app statica per GitHub Pages. Elabora localmente nel browser un file assortimento e un file vendite, propone i nuovi assegnati Medio e Basso e genera un layout operativo dello scaffale.
 
@@ -11,6 +11,7 @@ Web app statica per GitHub Pages. Elabora localmente nel browser un file assorti
 - Vendite: colonna `Vnd`
 - Quantità di imballo: `Art_Pz`
 - Mappatura cluster: `data/config/Cluster.xlsx`
+- Attributi layout obbligatori: `Caratteristica`, `Fornitore`, `Linea`, `Brand`
 
 ## Logica assortimentale
 
@@ -24,12 +25,20 @@ Web app statica per GitHub Pages. Elabora localmente nel browser un file assorti
 
 ## Layout scaffale
 
-La scheda `Layout scaffale` usa le referenze dell'assortimento Alto, Medio proposto o Basso proposto e offre due modalità:
+La scheda `Layout scaffale` usa sempre la colonna `Caratteristica` del file assortimento. Non vengono più interpretate o estratte sigle dalla descrizione prodotto.
 
-1. **Un fornitore per ripiano**: ogni ripiano contiene un solo fornitore; le referenze sono ordinate per gradazione crescente, per esempio W40, W45, W50.
-2. **Una gradazione per ripiano**: ogni ripiano contiene una gradazione; all'interno le referenze sono ordinate e raggruppate per fornitore.
+L'utente seleziona l'attributo da combinare con `Caratteristica`:
 
-La gradazione viene estratta automaticamente dalla descrizione del prodotto. Sono riconosciute forme come `5W40`, `5W-40`, `W40` e `SAE 40`. Le referenze non riconosciute vengono collocate in coda e segnalate.
+- `Fornitore`
+- `Linea`
+- `Brand`
+
+Per ciascun attributo sono disponibili due composizioni:
+
+1. **Attributo commerciale per ripiano**: ogni ripiano corrisponde a Fornitore, Linea o Brand; sul ripiano i prodotti sono ordinati per `Caratteristica`.
+2. **Caratteristica per ripiano**: ogni ripiano corrisponde a una Caratteristica; sul ripiano i prodotti sono raggruppati e ordinati per Fornitore, Linea o Brand.
+
+Le sigle di viscosità presenti nella colonna `Caratteristica`, come `5W30`, `10W40`, `15W40` e `80W90`, vengono ordinate considerando prima il valore dopo `W` e poi quello precedente. Le altre caratteristiche, come `2T`, `4T`, `DOT5.1` o `CATENA`, sono gestite senza leggere la descrizione.
 
 Le schede prodotto possono essere riordinate manualmente con drag&drop all'interno dello stesso ripiano. Il pulsante `Stampa layout` genera una vista A3 orizzontale destinata agli addetti di reparto.
 
