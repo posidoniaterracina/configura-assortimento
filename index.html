@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Bilanciamento degli assortimenti per cluster Alto, Medio e Basso">
   <title>Configura assortimento</title>
-  <link rel="stylesheet" href="css/app-v3-1.css?v=3.1.0">
+  <link rel="stylesheet" href="css/app-v3-2.css?v=3.2.0">
 </head>
 <body>
   <header class="topbar">
@@ -13,11 +13,11 @@
       <div>
         <p class="eyebrow">GRUPPO ORIZZONTE</p>
         <h1>Configura assortimento</h1>
-        <p class="subtitle">Dimensionamento di referenze e quantità in base a metri, vendite e giorni di scorta.</p>
+        <p class="subtitle">Dimensionamento di referenze e quantità e costruzione del layout operativo dello scaffale.</p>
       </div>
       <div class="topbar-status">
         <div id="clusterStatus" class="status-pill">Caricamento cluster...</div>
-        <small>Versione 3.1</small>
+        <small>Versione 3.2</small>
       </div>
     </div>
   </header>
@@ -134,6 +134,7 @@
           <button type="button" class="tab active" data-tab="supplierTab">Riepilogo fornitori</button>
           <button type="button" class="tab" data-tab="detailTab">Dettaglio referenze</button>
           <button type="button" class="tab" data-tab="qualityTab">Controlli e metodo</button>
+          <button type="button" class="tab" data-tab="planogramTab">Layout scaffale</button>
         </nav>
 
         <section id="supplierTab" class="tab-panel active">
@@ -162,6 +163,59 @@
             <div id="qualityContent"></div>
           </div>
         </section>
+
+        <section id="planogramTab" class="tab-panel">
+          <div class="panel planogram-panel">
+            <div class="panel-head">
+              <h2>Layout scaffale</h2>
+              <p class="muted">Costruzione automatica del ripiano con due criteri: un fornitore per ripiano oppure una gradazione per ripiano. La gradazione viene riconosciuta dalla descrizione del prodotto.</p>
+            </div>
+
+            <div class="planogram-controls">
+              <label>Assortimento da rappresentare
+                <select id="planogramLevel">
+                  <option value="alto">Alto</option>
+                  <option value="medio">Medio proposto</option>
+                  <option value="basso">Basso proposto</option>
+                </select>
+              </label>
+              <label>Criterio di costruzione
+                <select id="planogramMode">
+                  <option value="supplier">Un fornitore per ripiano</option>
+                  <option value="characteristic">Una gradazione per ripiano</option>
+                </select>
+              </label>
+              <label>Titolo stampa
+                <input id="planogramTitle" type="text" value="Layout scaffale olio motore" maxlength="100">
+              </label>
+              <label>Punto vendita
+                <input id="planogramStore" type="text" placeholder="Facoltativo" maxlength="100">
+              </label>
+              <div class="planogram-actions">
+                <button id="generatePlanogramButton" type="button" class="secondary">Genera layout</button>
+                <button id="printPlanogramButton" type="button" class="secondary">Stampa layout</button>
+              </div>
+            </div>
+
+            <div id="planogramSummary" class="planogram-summary"></div>
+            <div id="planogramWarnings" class="planogram-warnings"></div>
+
+            <div id="planogramPrintArea" class="planogram-print-area">
+              <div class="planogram-print-header">
+                <div>
+                  <p class="eyebrow print-eyebrow">GRUPPO ORIZZONTE</p>
+                  <h2 id="planogramPrintTitle">Layout scaffale olio motore</h2>
+                  <p id="planogramPrintMeta" class="muted"></p>
+                </div>
+                <div class="planogram-legend">
+                  <span><b>W40, W45, W50...</b> = gradazione rilevata</span>
+                  <span><b>Q.tà</b> = quantità prevista nell'assortimento selezionato</span>
+                </div>
+              </div>
+              <div id="planogramShelves" class="planogram-shelves"></div>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
   </main>
@@ -172,7 +226,8 @@
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>if (!window.XLSX) { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>'); }</script>
-  <script src="js/engine-v3.js?v=3.1.0"></script>
-  <script src="js/app-v3-1.js?v=3.1.0"></script>
+  <script src="js/engine-v3.js?v=3.2.0"></script>
+  <script src="js/planogram-v1.js?v=1.0.0"></script>
+  <script src="js/app-v3-2.js?v=3.2.0"></script>
 </body>
 </html>
