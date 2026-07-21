@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Bilanciamento degli assortimenti per cluster Alto, Medio e Basso">
   <title>Configura assortimento</title>
-  <link rel="stylesheet" href="css/app-v3-3.css?v=3.3.0">
+  <link rel="stylesheet" href="css/app-v4.css?v=4.0.0">
 </head>
 <body>
   <header class="topbar">
@@ -17,7 +17,7 @@
       </div>
       <div class="topbar-status">
         <div id="clusterStatus" class="status-pill">Caricamento cluster...</div>
-        <small>Versione 3.3</small>
+        <small>Versione 4.0</small>
       </div>
     </div>
   </header>
@@ -41,7 +41,105 @@
       </section>
 
       <section>
-        <h2>2. Metri scaffale</h2>
+        <h2>2. Arricchimento e margine</h2>
+        <p class="section-help">Crea fino a tre attributi cercando parole chiave nella descrizione e definisci la loro rappresentatività nel nuovo assortimento.</p>
+        <div class="margin-grid">
+          <label>Prezzo di vendita lordo
+            <select id="salePriceColumn"><option value="">Carica il file assortimento</option></select>
+          </label>
+          <label>Costo di acquisto
+            <select id="costColumn"><option value="">Carica il file assortimento</option></select>
+          </label>
+          <label>Colonna aliquota IVA
+            <select id="vatColumn"><option value="">Usa aliquota predefinita</option></select>
+          </label>
+          <label>IVA predefinita (%)
+            <input id="defaultVatRate" type="number" min="0" max="100" step="0.01" value="22">
+          </label>
+        </div>
+        <p class="note">Il PVP viene scorporato dell'IVA: PVP netto = PVP lordo / (1 + IVA / 100). Margine % = (PVP netto − costo di acquisto) / PVP netto. Il sistema propone automaticamente Pvp e PrzUnipam; se non trova una colonna IVA applica il 22% predefinito.</p>
+
+        <div class="attribute-stack">
+          <article id="attributeCard1" class="attribute-card">
+            <div class="attribute-card-head">
+              <label class="attribute-switch"><input id="attributeEnabled1" type="checkbox" checked> Usa attributo 1</label>
+              <input id="attributeName1" type="text" value="Tipologia" aria-label="Nome attributo 1">
+            </div>
+            <label>Cluster e parole alternative
+              <textarea id="attributeRules1" rows="4">Pennello = pennello; pennelli
+Pennellessa = pennellessa; pennellesse; plafoncino
+Rullo = rullo; rulli; ricambio rullo</textarea>
+            </label>
+            <div class="attribute-policy-grid">
+              <label>Rappresentatività
+                <select id="attributeMode1">
+                  <option value="all">Tutti i valori presenti</option>
+                  <option value="top_sales_pct">Top % valori per vendite</option>
+                  <option value="top_margin_pct">Top % valori per margine totale</option>
+                  <option value="top_sales_n">Top N valori per vendite</option>
+                  <option value="top_margin_n">Top N valori per margine totale</option>
+                </select>
+              </label>
+              <label>Valore
+                <input id="attributeValue1" type="number" min="1" max="100" value="100">
+              </label>
+            </div>
+          </article>
+
+          <article id="attributeCard2" class="attribute-card is-disabled">
+            <div class="attribute-card-head">
+              <label class="attribute-switch"><input id="attributeEnabled2" type="checkbox"> Usa attributo 2</label>
+              <input id="attributeName2" type="text" value="Materiale" aria-label="Nome attributo 2" disabled>
+            </div>
+            <label>Cluster e parole alternative
+              <textarea id="attributeRules2" rows="3" disabled>Microfibra = microfibra; micro fibra
+Sintetico = sintetico; sintetica; nylon</textarea>
+            </label>
+            <div class="attribute-policy-grid">
+              <label>Rappresentatività
+                <select id="attributeMode2" disabled>
+                  <option value="all">Tutti i valori presenti</option>
+                  <option value="top_sales_pct">Top % valori per vendite</option>
+                  <option value="top_margin_pct">Top % valori per margine totale</option>
+                  <option value="top_sales_n">Top N valori per vendite</option>
+                  <option value="top_margin_n">Top N valori per margine totale</option>
+                </select>
+              </label>
+              <label>Valore
+                <input id="attributeValue2" type="number" min="1" max="100" value="100" disabled>
+              </label>
+            </div>
+          </article>
+
+          <article id="attributeCard3" class="attribute-card is-disabled">
+            <div class="attribute-card-head">
+              <label class="attribute-switch"><input id="attributeEnabled3" type="checkbox"> Usa attributo 3</label>
+              <input id="attributeName3" type="text" value="Utilizzo" aria-label="Nome attributo 3" disabled>
+            </div>
+            <label>Cluster e parole alternative
+              <textarea id="attributeRules3" rows="3" disabled>Smalto = smalto; smalti
+Parete = parete; muro; murale</textarea>
+            </label>
+            <div class="attribute-policy-grid">
+              <label>Rappresentatività
+                <select id="attributeMode3" disabled>
+                  <option value="all">Tutti i valori presenti</option>
+                  <option value="top_sales_pct">Top % valori per vendite</option>
+                  <option value="top_margin_pct">Top % valori per margine totale</option>
+                  <option value="top_sales_n">Top N valori per vendite</option>
+                  <option value="top_margin_n">Top N valori per margine totale</option>
+                </select>
+              </label>
+              <label>Valore
+                <input id="attributeValue3" type="number" min="1" max="100" value="100" disabled>
+              </label>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. Metri scaffale</h2>
         <p class="section-help">I metri sono il vincolo fisso. L'Alto rappresenta il 100%.</p>
         <div class="meters-grid">
           <label>Alto
@@ -58,7 +156,7 @@
       </section>
 
       <section>
-        <h2>3. Cluster da usare nelle vendite</h2>
+        <h2>4. Cluster da usare nelle vendite</h2>
         <div class="dropdown" id="clusterDropdown">
           <button id="clusterMenuButton" class="dropdown-button" type="button" aria-expanded="false" aria-controls="clusterMenu">
             <span id="clusterSelectLabel">Tutti i cluster</span><span aria-hidden="true">▾</span>
@@ -75,7 +173,7 @@
       </section>
 
       <section>
-        <h2>4. Bilanciamento del taglio</h2>
+        <h2>5. Bilanciamento del taglio</h2>
         <div class="mode-grid" role="radiogroup" aria-label="Modalità bilanciamento">
           <label class="mode-card">
             <input id="cutModeAuto" name="cutMode" type="radio" value="auto" checked>
@@ -99,7 +197,7 @@
       </section>
 
       <section>
-        <h2>5. Giorni di scorta desiderati</h2>
+        <h2>6. Giorni di scorta desiderati</h2>
         <div class="stock-grid">
           <label>Medio
             <div class="input-unit"><input id="stockDaysMedio" type="number" min="1" step="1" value="30"><span>gg</span></div>
@@ -131,13 +229,32 @@
         <div id="kpis" class="kpi-grid"></div>
 
         <nav class="tabs" aria-label="Risultati">
-          <button type="button" class="tab active" data-tab="supplierTab">Riepilogo fornitori</button>
+          <button type="button" class="tab active" data-tab="proposalTab">Proposta nuovo assortimento</button>
+          <button type="button" class="tab" data-tab="supplierTab">Riepilogo fornitori</button>
           <button type="button" class="tab" data-tab="detailTab">Dettaglio referenze</button>
           <button type="button" class="tab" data-tab="qualityTab">Controlli e metodo</button>
           <button type="button" class="tab" data-tab="planogramTab">Layout scaffale</button>
         </nav>
 
-        <section id="supplierTab" class="tab-panel active">
+        <section id="proposalTab" class="tab-panel active">
+          <div class="panel">
+            <div class="panel-head split">
+              <div>
+                <h2>Proposta nuovo assortimento</h2>
+                <p class="muted">Ogni riga mostra tre pallini: verde Alto, giallo Medio e rosso Basso. Il pallino è acceso solo quando l'articolo è presente nel livello proposto.</p>
+              </div>
+              <input id="proposalSearchInput" class="search" type="search" placeholder="Cerca prodotto, SKU, fornitore o attributo">
+            </div>
+            <div class="presence-legend" aria-label="Legenda indicatori assortimento">
+              <span><i class="presence-dot alto is-on"></i> Alto</span>
+              <span><i class="presence-dot medio is-on"></i> Medio</span>
+              <span><i class="presence-dot basso is-on"></i> Basso</span>
+            </div>
+            <div class="table-wrap"><table id="proposalTable"></table></div>
+          </div>
+        </section>
+
+        <section id="supplierTab" class="tab-panel">
           <div class="panel">
             <div class="panel-head split">
               <div><h2>Riepilogo per fornitore</h2><p class="muted">Aggregazione tramite la colonna Fornitore. Passa il mouse o porta il focus sull’icona <b>i</b> per leggere la spiegazione di ogni colonna.</p></div>
@@ -168,7 +285,7 @@
           <div class="panel planogram-panel">
             <div class="panel-head">
               <h2>Layout scaffale</h2>
-              <p class="muted">La colonna Caratteristica viene sempre combinata con Fornitore, Linea o Brand. Puoi scegliere quale attributo forma i ripiani e quale ordina i prodotti sul ripiano.</p>
+              <p class="muted">La colonna Caratteristica può essere combinata con Fornitore, Linea, Brand oppure con uno degli attributi generati dalle parole chiave.</p>
             </div>
 
             <div class="planogram-controls">
@@ -234,8 +351,9 @@
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>if (!window.XLSX) { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>'); }</script>
-  <script src="js/engine-v3.js?v=3.3.0"></script>
-  <script src="js/planogram-v2.js?v=2.0.0"></script>
-  <script src="js/app-v3-3.js?v=3.3.0"></script>
+  <script src="js/engine-v3.js?v=4.0.0"></script>
+  <script src="js/enrichment-v1.js?v=1.1.0"></script>
+  <script src="js/planogram-v3.js?v=3.0.0"></script>
+  <script src="js/app-v4.js?v=4.0.1"></script>
 </body>
 </html>

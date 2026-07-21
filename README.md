@@ -1,51 +1,135 @@
-# Configura assortimento — versione 3.3
+# Configura assortimento — versione 4.0
 
-Web app statica per GitHub Pages. Elabora localmente nel browser un file assortimento e un file vendite, propone i nuovi assegnati Medio e Basso e genera un layout operativo dello scaffale.
+Web app statica per GitHub Pages. Elabora localmente nel browser un file assortimento e un file vendite, arricchisce le descrizioni con attributi configurabili, analizza vendite e margine, propone gli assortimenti Alto/Medio/Basso e genera il layout operativo dello scaffale.
 
-## Input fissi
+## Novità versione 4.0
 
-- Assortimento: foglio `Q_Temp`
-- Vendite: foglio `Q_TempPV`
-- Filtro assortimento: `Breve = N`
-- Collegamento prodotto: `Id` ↔ `Fk_Prd`
-- Vendite: colonna `Vnd`
-- Quantità di imballo: `Art_Pz`
-- Mappatura cluster: `data/config/Cluster.xlsx`
-- Attributi layout obbligatori: `Caratteristica`, `Fornitore`, `Linea`, `Brand`
+### Arricchimento tramite parole chiave
+
+È possibile configurare fino a tre attributi. Ogni attributo contiene più cluster e le relative parole alternative da ricercare nella descrizione.
+
+Esempio:
+
+```text
+Pennello = pennello; pennelli
+Pennellessa = pennellessa; pennellesse; plafoncino
+Rullo = rullo; rulli; ricambio rullo
+```
+
+La ricerca non distingue maiuscole, minuscole, accenti e punteggiatura. Quando una descrizione non corrisponde a nessuna regola viene assegnato il valore `NON CLASSIFICATO`. Le corrispondenze multiple vengono segnalate nell'esportazione.
+
+### Rappresentatività dei cluster
+
+Per ciascun attributo si può scegliere:
+
+- tutti i valori presenti;
+- Top X% dei valori per vendite;
+- Top X% dei valori per margine totale;
+- Top N valori per vendite;
+- Top N valori per margine totale.
+
+Gli attributi sono gerarchici: Attributo 1 ha priorità maggiore di Attributo 2, che ha priorità maggiore di Attributo 3. Il motore prova a mantenere almeno una referenza dei cluster prioritari anche nel Medio e nel Basso. Se i minimi obbligatori superano la capacità disponibile, viene mostrato un avviso.
+
+### Analisi del margine
+
+Dopo il caricamento del file assortimento l'app mostra le colonne disponibili e propone automaticamente:
+
+- `Pvp` come prezzo di vendita lordo IVA;
+- `PrzUnipam` come costo di acquisto;
+- una colonna IVA, quando presente, tra `IVA`, `Iva`, `Aliquota IVA`, `Aliquota_IVA`, `AliquotaIva`, `Vat` o `VAT`.
+
+Le colonne possono essere cambiate dall'utente. Se la colonna IVA non è disponibile, viene applicata l'aliquota predefinita del 22%, modificabile nell'interfaccia.
+
+Calcoli:
+
+- PVP netto IVA = PVP lordo / (1 + aliquota IVA / 100);
+- Margine unitario = PVP netto IVA − costo di acquisto;
+- Margine % = margine unitario / PVP netto IVA × 100;
+- Margine totale = margine unitario × quantità venduta.
+
+Nell'esportazione Excel sono riportati separatamente `PVP_Lordo`, `Aliquota_IVA` e `PVP_Netto_IVA`.
+
+### Vista proposta nuovo assortimento
+
+La nuova scheda mostra una riga per articolo con tre indicatori:
+
+- verde = presente nell'Alto;
+- giallo = presente nel Medio proposto;
+- rosso = presente nel Basso proposto.
+
+Il pallino è acceso solo se la quantità proposta del livello è maggiore di zero. La stessa riga mostra quantità A/M/B, attributi generati, vendite, margine percentuale e margine totale.
+
+## Input
+
+### Assortimento
+
+- foglio: `Q_Temp`;
+- filtro: `Breve = N`;
+- collegamento prodotto: `Id` e `SkuCodice`;
+- dati base: `GAlto`, `GMedio`, `GBasso`, `Art_Pz`;
+- attributi già presenti: `Caratteristica`, `Fornitore`, `Linea`, `Brand`.
+
+### Vendite
+
+- foglio: `Q_TempPV`;
+- collegamento prodotto: `Fk_Prd`;
+- punto vendita: `Negozio`;
+- quantità venduta: `Vnd`.
+
+### Cluster punti vendita
+
+File fisso: `data/config/Cluster.xlsx`.
 
 ## Logica assortimentale
 
-- I metri Alto, Medio e Basso sono vincoli fissi.
-- L'Alto è il riferimento 100%.
-- La graduatoria usa i cluster di vendita selezionati.
-- Modalità automatica: il Gini assegna più peso al taglio referenze quando le vendite sono concentrate.
-- Modalità manuale: l'utente sceglie il peso del taglio referenze; il peso quantità è il complemento a 100%.
-- Le quantità rispettano multipli o sottomultipli di `Art_Pz`.
-- L'output è riepilogato per `Fornitore` e può essere esportato in Excel.
+- i metri Alto, Medio e Basso sono vincoli fissi;
+- l'Alto rappresenta il 100%;
+- la graduatoria usa i punti vendita dei cluster selezionati;
+- il Gini stabilisce automaticamente quanto ridurre referenze e quantità, oppure il peso può essere impostato manualmente;
+- le quantità rispettano multipli o sottomultipli di `Art_Pz`;
+- le priorità degli attributi vengono applicate prima di vendite, margine totale e criteri secondari;
+- il Basso non può contenere una quantità superiore al Medio.
 
 ## Layout scaffale
 
-La scheda `Layout scaffale` usa sempre la colonna `Caratteristica` del file assortimento. Non vengono più interpretate o estratte sigle dalla descrizione prodotto.
+La scheda `Layout scaffale` combina `Caratteristica` con uno dei seguenti campi:
 
-L'utente seleziona l'attributo da combinare con `Caratteristica`:
+- Fornitore;
+- Linea;
+- Brand;
+- Attributo 1, 2 o 3, quando attivo.
 
-- `Fornitore`
-- `Linea`
-- `Brand`
+Sono disponibili le due composizioni:
 
-Per ciascun attributo sono disponibili due composizioni:
+1. attributo selezionato per ripiano e Caratteristica sul ripiano;
+2. Caratteristica per ripiano e attributo selezionato sul ripiano.
 
-1. **Attributo commerciale per ripiano**: ogni ripiano corrisponde a Fornitore, Linea o Brand; sul ripiano i prodotti sono ordinati per `Caratteristica`.
-2. **Caratteristica per ripiano**: ogni ripiano corrisponde a una Caratteristica; sul ripiano i prodotti sono raggruppati e ordinati per Fornitore, Linea o Brand.
+Le card possono essere riordinate con drag&drop nello stesso ripiano. La stampa è ottimizzata per A3 orizzontale.
 
-Le sigle di viscosità presenti nella colonna `Caratteristica`, come `5W30`, `10W40`, `15W40` e `80W90`, vengono ordinate considerando prima il valore dopo `W` e poi quello precedente. Le altre caratteristiche, come `2T`, `4T`, `DOT5.1` o `CATENA`, sono gestite senza leggere la descrizione.
+## Esportazione Excel
 
-Le schede prodotto possono essere riordinate manualmente con drag&drop all'interno dello stesso ripiano. Il pulsante `Stampa layout` genera una vista A3 orizzontale destinata agli addetti di reparto.
+Il file `Proposta_Nuovo_Assortimento.xlsx` contiene:
+
+- Riepilogo Fornitori;
+- Proposta Assortimento;
+- Analisi Attributi, quando presenti;
+- Parametri.
+
+La proposta include gli indicatori SI/NO per Alto, Medio e Basso, margini, cluster, priorità applicate e conflitti di classificazione.
 
 ## Pubblicazione
 
 Caricare tutto il contenuto nella radice del repository GitHub Pages. Il file principale è `index.html`.
 
-## Descrizioni colonne
+I file vengono elaborati localmente nel browser e non vengono inviati a server esterni.
 
-Le intestazioni delle tabelle mostrano un’icona `i`: al passaggio del mouse, al focus da tastiera o al tocco viene visualizzata una breve spiegazione del valore della colonna.
+## Test
+
+Dopo aver estratto i file Excel di prova in `/tmp` con `tests/extract_xlsx.py`:
+
+```bash
+node tests/engine-v3.test.js
+node tests/enrichment-v1.test.js
+node tests/planogram-v3.test.js
+python tests/ui_contract_test.py
+```
