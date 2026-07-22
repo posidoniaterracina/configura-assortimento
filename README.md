@@ -133,3 +133,10 @@ node tests/enrichment-v1.test.js
 node tests/planogram-v3.test.js
 python tests/ui_contract_test.py
 ```
+
+
+## Correzione 4.0.2 – pulsante Elabora
+
+- La tabella `Cluster.xlsx` è incorporata anche in `js/cluster-data-v1.js`, quindi il calcolo funziona aprendo direttamente `index.html`.
+- Il pulsante indica nel tooltip quali dati mancano quando è disabilitato.
+- Rimane disponibile il file Excel originale in `data/config/Cluster.xlsx` come sorgente di manutenzione.

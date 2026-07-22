@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "4.0.1";
+  var APP_VERSION = "4.0.2";
   var REQUIRED_ASSORTMENT = ["Id", "Prodotto", "Reparto", "Famiglia", "SttFamiglia", "GAlto", "GMedio", "GBasso", "Fornitore", "Linea", "Brand", "Caratteristica", "Art_Pz", "Breve"];
   var REQUIRED_SALES = ["Fk_Prd", "Negozio", "Vnd"];
   var REQUIRED_CLUSTER = ["Descrizione", "Tipo", "Reparto", "Gruppo", "Famiglia", "Priorita"];
@@ -148,7 +148,21 @@
   }
 
   function updateRatios(){ var meters=readMeters(false); if(!meters)$("ratioPreview").textContent="Inserisci i metri rispettando Basso ≤ Medio ≤ Alto."; else $("ratioPreview").innerHTML="Alto <b>100%</b> · Medio <b>"+pct(meters.medio/meters.alto)+"</b> · Basso <b>"+pct(meters.basso/meters.alto)+"</b>"; updateReady(); }
-  function updateReady(){ var ready=Boolean(window.XLSX&&state.clusterRows.length&&state.assortmentRows.length&&state.salesRows.length&&readMeters(false)&&readStockDays(false)&&state.selectedClusters.length); $("analyzeButton").disabled=!ready; }
+  function updateReady(){
+    var button=$("analyzeButton");
+    var missing=[];
+    if(!window.XLSX)missing.push("libreria Excel");
+    if(!state.clusterRows.length)missing.push("tabella cluster");
+    if(!state.assortmentRows.length)missing.push("file assortimento");
+    if(!state.salesRows.length)missing.push("file vendite");
+    if(!readMeters(false))missing.push("metri validi");
+    if(!readStockDays(false))missing.push("giorni di scorta validi");
+    if(!state.selectedClusters.length)missing.push("cluster vendite");
+    var ready=!missing.length;
+    button.disabled=!ready;
+    button.title=ready?"Avvia l’elaborazione":"Manca: "+missing.join(", ");
+    button.setAttribute("aria-disabled",ready?"false":"true");
+  }
 
 
   function renderColumnHeader(column) {
@@ -339,6 +353,8 @@
 
   function analyze(){
     clearMessages();
+    updateReady();
+    if($("analyzeButton").disabled){message($("analyzeButton").title||"Completa i dati richiesti prima di elaborare.","error");return;}
     try{
       var meters=readMeters(true),stock=readStockDays(true); if(!meters||!stock)return;
       var performance=buildPerformancePreview();
@@ -438,7 +454,33 @@
       try{loadFile(file,"Q_TempPV",REQUIRED_SALES).then(function(rows){state.salesRows=rows;message("File vendite caricato: "+rows.length+" righe.","info");updateAutomaticPreview();updateReady();}).catch(function(error){message("Vendite non valide. "+error.message,"error");updateReady();});}catch(error){message(error.message,"error");updateReady();}
     });
   }
-  function loadClusters(){ if(!window.XLSX){setStatus("Libreria Excel non disponibile","error");message("La libreria Excel non è stata caricata. Aggiorna la pagina con Ctrl+F5.","error");return;} var url=new URL("data/config/Cluster.xlsx?v=4.0.0",document.baseURI).toString();fetch(url,{cache:"no-store"}).then(function(response){if(!response.ok)throw new Error("HTTP "+response.status);return response.arrayBuffer();}).then(function(buffer){state.clusterRows=rowsFrom(readWorkbook(buffer),"Q_Temp");var missing=missingColumns(state.clusterRows,REQUIRED_CLUSTER);if(missing.length)throw new Error("colonne mancanti: "+missing.join(", "));setStatus("Cluster disponibili","ok");updateAutomaticPreview();updateReady();}).catch(function(error){setStatus("Errore cluster","error");message("Impossibile leggere data/config/Cluster.xlsx: "+error.message,"error");}); }
+  function base64ToArrayBuffer(base64){
+    var binary=window.atob(base64),length=binary.length,bytes=new Uint8Array(length);
+    for(var i=0;i<length;i+=1)bytes[i]=binary.charCodeAt(i);
+    return bytes.buffer;
+  }
+  function applyClusterWorkbook(buffer,source){
+    state.clusterRows=rowsFrom(readWorkbook(buffer),"Q_Temp");
+    var missing=missingColumns(state.clusterRows,REQUIRED_CLUSTER);
+    if(missing.length)throw new Error("colonne mancanti: "+missing.join(", "));
+    setStatus("Cluster disponibili","ok");
+    message("Tabella cluster caricata"+(source?" da "+source:"")+": "+state.clusterRows.length+" righe.","info");
+    updateAutomaticPreview();
+    updateReady();
+  }
+  function loadClusters(){
+    if(!window.XLSX){setStatus("Libreria Excel non disponibile","error");message("La libreria Excel non è stata caricata. Verifica la connessione Internet e aggiorna con Ctrl+F5.","error");updateReady();return;}
+    try{
+      if(window.AssortmentClusterWorkbookBase64){
+        applyClusterWorkbook(base64ToArrayBuffer(window.AssortmentClusterWorkbookBase64),"repository");
+        return;
+      }
+    }catch(embeddedError){
+      message("Il file cluster incorporato non è leggibile: "+embeddedError.message,"warning");
+    }
+    var url=new URL("data/config/Cluster.xlsx?v=4.0.2",document.baseURI).toString();
+    fetch(url,{cache:"no-store"}).then(function(response){if(!response.ok)throw new Error("HTTP "+response.status);return response.arrayBuffer();}).then(function(buffer){applyClusterWorkbook(buffer,"file locale");}).catch(function(error){setStatus("Errore cluster","error");message("Impossibile caricare la tabella cluster. Apri il repository completo e non spostare i singoli file. Dettaglio: "+error.message,"error");updateReady();});
+  }
   function bindControls(){
     ["metersAlto","metersMedio","metersBasso"].forEach(function(id){$(id).addEventListener("input",updateRatios);});
     ["stockDaysMedio","stockDaysBasso"].forEach(function(id){$(id).addEventListener("input",updateReady);});
