@@ -9,11 +9,11 @@ class P(HTMLParser):
    if k=='id' and v:self.ids.add(v)
 html=(ROOT/'index.html').read_text(encoding='utf-8');app=(ROOT/'js'/'app-v4.js').read_text(encoding='utf-8');p=P();p.feed(html)
 refs=set(re.findall(r'\$\("([A-Za-z0-9_-]+)"\)',app));missing=sorted(refs-p.ids);assert not missing,missing
-required={'proposalTab','proposalTable','proposalSearchInput','salePriceColumn','costColumn','vatColumn','defaultVatRate','attributeEnabled1','attributeName1','attributeRules1','attributeMode1','attributeValue1','planogramTab','planogramLevel','planogramCommercialField','planogramOrientation','generatePlanogramButton','printPlanogramButton','planogramShelves','clusterMenuButton','clusterMenu','clusterAll','clusterSelectLabel','clusterChips','cutModeAuto','cutModeManual','referenceWeight','analyzeButton','assortmentFile','salesFile'}
+required={'proposalTab','proposalTable','proposalSearchInput','salePriceColumn','costColumn','vatColumn','defaultVatRate','attributeEnabled1','attributeName1','attributeRules1','attributeMode1','attributeValue1','planogramTab','planogramLevel','planogramCommercialField','planogramOrientation','generatePlanogramButton','printPlanogramButton','planogramShelves','clusterMenuButton','clusterMenu','clusterAll','clusterSelectLabel','clusterChips','cutModeAuto','cutModeManual','referenceWeight','analyzeButton','analysisReadiness','assortmentFile','assortmentLoadStatus','salesFile','salesLoadStatus'}
 assert required<=p.ids,sorted(required-p.ids)
-assert 'engine-v3.js?v=4.0.0' in html and 'enrichment-v1.js?v=1.1.0' in html and 'planogram-v3.js?v=3.0.0' in html and 'app-v4.js?v=4.0.2' in html
+assert 'engine-v3.js?v=4.0.3' in html and 'enrichment-v1.js?v=1.1.0' in html and 'planogram-v3.js?v=3.0.0' in html and 'app-v4.js?v=4.0.3' in html
 assert 'presence-dot alto' in html and 'presence-dot medio' in html and 'presence-dot basso' in html
 assert 'Presenza proposta' in app and 'renderProposalTable' in app and 'attribute_1' in app
 assert 'cluster-data-v1.js?v=1.0.0' in html
 assert 'AssortmentClusterWorkbookBase64' in app or (root / 'js' / 'cluster-data-v1.js').exists()
-print('OK - contratto UI v4.0.2 cluster incorporati e margine netto IVA')
+print('OK - contratto UI v4.0.3 alias Box, diagnostica file e pulsante cliccabile')

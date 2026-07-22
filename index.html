@@ -17,7 +17,7 @@
       </div>
       <div class="topbar-status">
         <div id="clusterStatus" class="status-pill">Caricamento cluster...</div>
-        <small>Versione 4.0</small>
+        <small>Versione 4.0.3</small>
       </div>
     </div>
   </header>
@@ -31,12 +31,14 @@
           <span class="upload-help">Foglio Q_Temp. Sono considerate solo le righe con Breve = N.</span>
           <input id="assortmentFile" type="file" accept=".xlsx,.xls">
           <span id="assortmentName" class="file-name">Nessun file selezionato</span>
+          <span id="assortmentLoadStatus" class="file-load-status">Non caricato</span>
         </label>
         <label class="upload-box" for="salesFile">
           <span class="upload-title">File vendite</span>
           <span class="upload-help">Foglio Q_TempPV. Le vendite sono lette dalla colonna Vnd.</span>
           <input id="salesFile" type="file" accept=".xlsx,.xls">
           <span id="salesName" class="file-name">Nessun file selezionato</span>
+          <span id="salesLoadStatus" class="file-load-status">Non caricato</span>
         </label>
       </section>
 
@@ -209,7 +211,8 @@ Parete = parete; muro; murale</textarea>
         <p class="note">Le quantità vengono arrotondate a multipli o sottomultipli di Art_Pz.</p>
       </section>
 
-      <button id="analyzeButton" class="primary" type="button" disabled>Analizza e dimensiona</button>
+      <button id="analyzeButton" class="primary is-not-ready" type="button">Analizza e dimensiona</button>
+      <div id="analysisReadiness" class="analysis-readiness warning">Da verificare: carica i file richiesti.</div>
       <div id="messages" class="messages" aria-live="polite"></div>
     </aside>
 
@@ -351,10 +354,10 @@ Parete = parete; muro; murale</textarea>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>if (!window.XLSX) { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>'); }</script>
-  <script src="js/engine-v3.js?v=4.0.0"></script>
+  <script src="js/engine-v3.js?v=4.0.3"></script>
   <script src="js/cluster-data-v1.js?v=1.0.0"></script>
   <script src="js/enrichment-v1.js?v=1.1.0"></script>
   <script src="js/planogram-v3.js?v=3.0.0"></script>
-  <script src="js/app-v4.js?v=4.0.2"></script>
+  <script src="js/app-v4.js?v=4.0.3"></script>
 </body>
 </html>

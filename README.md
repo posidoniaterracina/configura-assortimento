@@ -140,3 +140,12 @@ python tests/ui_contract_test.py
 - La tabella `Cluster.xlsx` è incorporata anche in `js/cluster-data-v1.js`, quindi il calcolo funziona aprendo direttamente `index.html`.
 - Il pulsante indica nel tooltip quali dati mancano quando è disabilitato.
 - Rimane disponibile il file Excel originale in `data/config/Cluster.xlsx` come sorgente di manutenzione.
+
+
+## Correzione 4.0.3
+
+- Chiave di collegamento confermata: `Assortimento.Id` ↔ `Vendite.Fk_Prd`.
+- La colonna storica `Box` viene accettata automaticamente come alias di `Caratteristica`.
+- L'aliquota viene proposta anche dalla colonna `Iva_Perc`.
+- Lo stato dei due file rimane visibile separatamente dopo il caricamento.
+- Il pulsante Analizza resta cliccabile: se manca un requisito mostra l'elenco preciso invece di rimanere bloccato senza spiegazione.

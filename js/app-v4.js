@@ -1,8 +1,8 @@
 (function () {
   "use strict";
 
-  var APP_VERSION = "4.0.2";
-  var REQUIRED_ASSORTMENT = ["Id", "Prodotto", "Reparto", "Famiglia", "SttFamiglia", "GAlto", "GMedio", "GBasso", "Fornitore", "Linea", "Brand", "Caratteristica", "Art_Pz", "Breve"];
+  var APP_VERSION = "4.0.3";
+  var REQUIRED_ASSORTMENT = ["Id", "Prodotto", "Reparto", "Famiglia", "SttFamiglia", "GAlto", "GMedio", "GBasso", "Fornitore", "Linea", "Brand", "Art_Pz", "Breve"];
   var REQUIRED_SALES = ["Fk_Prd", "Negozio", "Vnd"];
   var REQUIRED_CLUSTER = ["Descrizione", "Tipo", "Reparto", "Gruppo", "Famiglia", "Priorita"];
   var E, P, A;
@@ -69,6 +69,21 @@
   function missingColumns(rows,required){ var columns=rows.length?Object.keys(rows[0]):[]; return required.filter(function(name){return columns.indexOf(name)<0;}); }
   function loadFile(file,sheetName,required){ ensureSpreadsheetLibrary(); return file.arrayBuffer().then(function(buffer){ var rows=rowsFrom(readWorkbook(buffer),sheetName); if(!rows.length)throw new Error("Il file non contiene righe leggibili."); var missing=missingColumns(rows,required); if(missing.length)throw new Error("Colonne mancanti: "+missing.join(", ")); return rows; }); }
 
+  function normalizeAssortmentRows(rows){
+    return (rows||[]).map(function(source){
+      var row=Object.assign({},source);
+      if((row.Caratteristica===undefined||row.Caratteristica===null||row.Caratteristica==="")&&row.Box!==undefined)row.Caratteristica=row.Box;
+      return row;
+    });
+  }
+
+  function setFileLoadStatus(id,text,type){
+    var node=$(id);
+    if(!node)return;
+    node.textContent=text;
+    node.className="file-load-status"+(type?" "+type:"");
+  }
+
   function readMeters(showErrors){ var alto=Number($("metersAlto").value),medio=Number($("metersMedio").value),basso=Number($("metersBasso").value); var valid=Number.isFinite(alto)&&alto>0&&Number.isFinite(medio)&&medio>=0&&Number.isFinite(basso)&&basso>=0&&medio<=alto&&basso<=medio; if(!valid&&showErrors)message("Inserisci metri validi rispettando Basso ≤ Medio ≤ Alto e Alto maggiore di zero.","error"); return valid?{alto:alto,medio:medio,basso:basso}:null; }
   function readStockDays(showErrors){ var medio=Number($("stockDaysMedio").value),basso=Number($("stockDaysBasso").value); var valid=Number.isFinite(medio)&&medio>0&&Number.isFinite(basso)&&basso>0; if(!valid&&showErrors)message("Inserisci giorni di scorta maggiori di zero per Medio e Basso.","error"); return valid?{medio:medio,basso:basso}:null; }
   function currentCutMode(){ return $("cutModeManual").checked?"manual":"auto"; }
@@ -106,7 +121,7 @@
     }
     fill("salePriceColumn",["Pvp","PrezzoVendita","Prezzo_Vendita","Prezzo"]);
     fill("costColumn",["PrzUnipam","ListinoUno","CostoAcquisto","Costo_Acquisto","Costo"]);
-    fill("vatColumn",["IVA","Iva","Aliquota IVA","Aliquota_IVA","AliquotaIva","Vat","VAT"],"Usa aliquota predefinita");
+    fill("vatColumn",["Iva_Perc","IVA","Iva","Aliquota IVA","Aliquota_IVA","AliquotaIva","Vat","VAT"],"Usa aliquota predefinita");
   }
 
   function updateAttributeControlState(){
@@ -148,20 +163,28 @@
   }
 
   function updateRatios(){ var meters=readMeters(false); if(!meters)$("ratioPreview").textContent="Inserisci i metri rispettando Basso ≤ Medio ≤ Alto."; else $("ratioPreview").innerHTML="Alto <b>100%</b> · Medio <b>"+pct(meters.medio/meters.alto)+"</b> · Basso <b>"+pct(meters.basso/meters.alto)+"</b>"; updateReady(); }
-  function updateReady(){
-    var button=$("analyzeButton");
+  function readinessMissing(){
     var missing=[];
     if(!window.XLSX)missing.push("libreria Excel");
     if(!state.clusterRows.length)missing.push("tabella cluster");
-    if(!state.assortmentRows.length)missing.push("file assortimento");
-    if(!state.salesRows.length)missing.push("file vendite");
+    if(!state.assortmentRows.length)missing.push("file assortimento valido");
+    if(!state.salesRows.length)missing.push("file vendite valido");
     if(!readMeters(false))missing.push("metri validi");
     if(!readStockDays(false))missing.push("giorni di scorta validi");
     if(!state.selectedClusters.length)missing.push("cluster vendite");
-    var ready=!missing.length;
-    button.disabled=!ready;
-    button.title=ready?"Avvia l’elaborazione":"Manca: "+missing.join(", ");
-    button.setAttribute("aria-disabled",ready?"false":"true");
+    return missing;
+  }
+  function updateReady(){
+    var button=$("analyzeButton"),missing=readinessMissing(),ready=!missing.length,status=$("analysisReadiness");
+    button.disabled=false;
+    button.classList.toggle("is-not-ready",!ready);
+    button.title=ready?"Avvia l’elaborazione":"Clicca per vedere cosa manca";
+    button.dataset.ready=ready?"true":"false";
+    button.setAttribute("aria-disabled","false");
+    if(status){
+      status.textContent=ready?"Dati pronti: puoi avviare l’analisi.":"Da verificare: "+missing.join(", ")+".";
+      status.className="analysis-readiness "+(ready?"ok":"warning");
+    }
   }
 
 
@@ -354,7 +377,8 @@
   function analyze(){
     clearMessages();
     updateReady();
-    if($("analyzeButton").disabled){message($("analyzeButton").title||"Completa i dati richiesti prima di elaborare.","error");return;}
+    var missing=readinessMissing();
+    if(missing.length){message("Impossibile avviare l’analisi. Verifica: "+missing.join(", ")+".","error");return;}
     try{
       var meters=readMeters(true),stock=readStockDays(true); if(!meters||!stock)return;
       var performance=buildPerformancePreview();
@@ -445,13 +469,15 @@
   function bindFileInputs(){
     $("assortmentFile").addEventListener("change",function(){
       clearMessages();var file=this.files[0];$("assortmentName").textContent=file?file.name:"Nessun file selezionato";state.assortmentRows=[];
+      setFileLoadStatus("assortmentLoadStatus",file?"Lettura in corso...":"Non caricato",file?"loading":"");
       if(!file){populateColumnSelectors([]);updateAutomaticPreview();return updateReady();}
-      try{loadFile(file,"Q_Temp",REQUIRED_ASSORTMENT).then(function(rows){state.assortmentRows=rows;populateColumnSelectors(rows);message("File assortimento caricato: "+rows.length+" righe.","info");updateAutomaticPreview();updateReady();}).catch(function(error){message("Assortimento non valido. "+error.message,"error");updateReady();});}catch(error){message(error.message,"error");updateReady();}
+      try{loadFile(file,"Q_Temp",REQUIRED_ASSORTMENT).then(function(rows){rows=normalizeAssortmentRows(rows);state.assortmentRows=rows;populateColumnSelectors(rows);setFileLoadStatus("assortmentLoadStatus","Caricato: "+rows.length+" righe"+(Object.prototype.hasOwnProperty.call(rows[0]||{},"Box")?" · Box accettata come Caratteristica":""),"ok");message("File assortimento caricato: "+rows.length+" righe.","info");updateAutomaticPreview();updateReady();}).catch(function(error){setFileLoadStatus("assortmentLoadStatus","Non valido: "+error.message,"error");message("Assortimento non valido. "+error.message,"error");updateReady();});}catch(error){setFileLoadStatus("assortmentLoadStatus","Errore: "+error.message,"error");message(error.message,"error");updateReady();}
     });
     $("salesFile").addEventListener("change",function(){
       clearMessages();var file=this.files[0];$("salesName").textContent=file?file.name:"Nessun file selezionato";state.salesRows=[];
+      setFileLoadStatus("salesLoadStatus",file?"Lettura in corso...":"Non caricato",file?"loading":"");
       if(!file){updateAutomaticPreview();return updateReady();}
-      try{loadFile(file,"Q_TempPV",REQUIRED_SALES).then(function(rows){state.salesRows=rows;message("File vendite caricato: "+rows.length+" righe.","info");updateAutomaticPreview();updateReady();}).catch(function(error){message("Vendite non valide. "+error.message,"error");updateReady();});}catch(error){message(error.message,"error");updateReady();}
+      try{loadFile(file,"Q_TempPV",REQUIRED_SALES).then(function(rows){state.salesRows=rows;setFileLoadStatus("salesLoadStatus","Caricato: "+rows.length+" righe · chiave Fk_Prd","ok");message("File vendite caricato: "+rows.length+" righe.","info");updateAutomaticPreview();updateReady();}).catch(function(error){setFileLoadStatus("salesLoadStatus","Non valido: "+error.message,"error");message("Vendite non valide. "+error.message,"error");updateReady();});}catch(error){setFileLoadStatus("salesLoadStatus","Errore: "+error.message,"error");message(error.message,"error");updateReady();}
     });
   }
   function base64ToArrayBuffer(base64){

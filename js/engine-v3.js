@@ -53,7 +53,7 @@
         supplier: String(row.Fornitore || "").trim(),
         line: String(row.Linea || "").trim(),
         brand: String(row.Brand || "").trim(),
-        characteristic: String(row.Caratteristica || "").trim(),
+        characteristic: String(row.Caratteristica || row.Box || "").trim(),
         pack_size: Math.max(1, Math.round(toNumber(row.Art_Pz, 1))),
         GAlto: Math.max(0, Math.round(toNumber(row.GAlto, 0))),
         GMedio: Math.max(0, Math.round(toNumber(row.GMedio, 0))),
@@ -167,7 +167,6 @@
     var articleLookup = {};
     assortment.forEach(function (row, index) {
       articleLookup[row.article_id] = index;
-      if (row.sku) articleLookup[row.sku] = index;
     });
 
     var sales = assortment.map(function () { return 0; });
